@@ -46,6 +46,12 @@ public class SshConfiguration extends AbstractConfiguration {
     // WARNING: accepts all hosts in case that this is empty.
     private String[] knownHosts;
 
+    private String argumentStyle = ARGUMENT_STYLE_DASH;
+
+    public static final String ARGUMENT_STYLE_DASH = "dash";
+//    public static final String ARGUMENT_STYLE_DASHDASH = "dashdash";
+//    public static final String ARGUMENT_STYLE_SLASH = "slash";
+//    public static final String ARGUMENT_STYLE_VARIABLES_POWERSHELL = "variables-powershell";
 
     @ConfigurationProperty(order = 100)
     public String getHost() {
@@ -90,6 +96,15 @@ public class SshConfiguration extends AbstractConfiguration {
 
     public void setKnownHosts(String[] knownHosts) {
         this.knownHosts = knownHosts;
+    }
+
+    @ConfigurationProperty(order = 120)
+    public String getArgumentStyle() {
+        return argumentStyle;
+    }
+
+    public void setArgumentStyle(String argumentStyle) {
+        this.argumentStyle = argumentStyle;
     }
 
     @Override

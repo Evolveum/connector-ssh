@@ -26,6 +26,7 @@ import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.transport.TransportException;
+import net.schmizz.sshj.transport.verification.HostKeyVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
 //import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.identityconnectors.common.logging.Log;
@@ -52,6 +53,9 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     private static final Log LOG = Log.getLog(SshConnector.class);
 
     private SshConfiguration configuration;
+    private HostKeyVerifier hostKeyVerifier;
+    private CommandProcessor commandProcessor;
+
     private SSHClient ssh;
     private Session session = null;
 
@@ -67,18 +71,14 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     public void init(Configuration configuration) {
         LOG.info("Initializing {0} connector instance {1}", this.getClass().getSimpleName(), this);
         this.configuration = (SshConfiguration)configuration;
-        connect();
+        this.hostKeyVerifier = new ConnectorKnownHostsVerifier().parse(this.configuration.getKnownHosts());
+        this.commandProcessor = new CommandProcessor(this.configuration);
     }
 
     private void connect() {
-//        BouncyCastleProvider bcProvider = new BouncyCastleProvider();
-//        Security.addProvider(bcProvider);
-        LOG.ok("JCE providers: {0}", Arrays.toString(Security.getProviders()));
-//        DefaultConfig sshConf = new DefaultConfig();
-//        sshConf.
         ssh = new SSHClient();
-        ssh.addHostKeyVerifier(new ConnectorKnownHostsVerifier().parse(configuration.getKnownHosts()));
-
+        ssh.addHostKeyVerifier(hostKeyVerifier);
+        LOG.ok("Connecting to {0}", getConnectionDesc());
         try {
             ssh.connect(configuration.getHost());
         } catch (IOException e) {
@@ -86,12 +86,14 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
             throw new ConnectionFailedException("Error creating SSH connection to " + getHostDesc() + ": " + e.getMessage(), e);
         }
         authenticate();
+        LOG.ok("Authentication to {0} successful", getConnectionDesc());
         try {
             session = ssh.startSession();
         } catch (ConnectionException | TransportException e) {
             LOG.error("Communication error while creating SSH session for {1} failed: {2}", getConnectionDesc(), e.getMessage());
             throw new ConnectionFailedException("Communication error while creating SSH session for "+getConnectionDesc()+" failed: " + e.getMessage(), e);
         }
+        LOG.info("Connection to {0} fully established", getConnectionDesc());
     }
 
     private void authenticate() {
@@ -112,12 +114,13 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
         if (password == null) {
             throw new ConfigurationException("No authentication password configured '"+configuration.getAuthenticationScheme()+"'");
         }
+        LOG.ok("Authenticating to {0} using password authentication", getConnectionDesc());
         password.access( passwordChars -> {
             try {
                 ssh.authPassword(configuration.getUsername(), passwordChars);
             } catch (UserAuthException e) {
                 LOG.error("SSH password authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
-                throw new ConnectionFailedException("SSH public key authentication as "+configuration.getUsername()+" to "+getHostDesc()+" failed: " + e.getMessage(), e);
+                throw new ConnectionFailedException("SSH password authentication as "+configuration.getUsername()+" to "+getHostDesc()+" failed: " + e.getMessage(), e);
             } catch (TransportException e) {
                 LOG.error("Communication error during SSH password authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
                 throw new ConnectionFailedException("Communication error during SSH public key authentication as "+configuration.getUsername()+" to "+getHostDesc()+" failed: " + e.getMessage(), e);
@@ -126,6 +129,7 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     }
 
     private void authenticatePublicKey() {
+        LOG.ok("Authenticating to {0} using public key authentication", getConnectionDesc());
         try {
             ssh.authPublickey(configuration.getUsername());
         } catch (UserAuthException e) {
@@ -152,20 +156,31 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
         return hostDesc;
     }
 
-    @Override
-    public void dispose() {
-        if (session != null) {
+    private void disconnect() {
+        if (session != null && session.isOpen()) {
+            LOG.ok("Closing session to {0}", getConnectionDesc());
             try {
                 session.close();
             } catch (ConnectionException | TransportException e) {
                 LOG.warn("Error closing SSH session for {0}: {1} (ignoring)", getConnectionDesc(), e.getMessage());
             }
+            session = null;
         }
-        try {
-            ssh.disconnect();
-        } catch (IOException e) {
-            LOG.warn("Error disconnecting SSH session for {0}: {1} (ignoring)", getConnectionDesc(), e.getMessage());
+        if (ssh.isConnected()) {
+            LOG.ok("Disconnecting from {0}", getConnectionDesc());
+            try {
+                ssh.disconnect();
+            } catch (IOException e) {
+                LOG.warn("Error disconnecting SSH session for {0}: {1} (ignoring)", getConnectionDesc(), e.getMessage());
+            }
+            LOG.info("Connection to {0} disconnected", getConnectionDesc());
         }
+        ssh = null;
+    }
+
+    @Override
+    public void dispose() {
+        disconnect();
     }
 
     @Override
@@ -182,32 +197,34 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     @Override
     public Object runScriptOnResource(ScriptContext scriptCtx, OperationOptions options) {
         String scriptLanguage = scriptCtx.getScriptLanguage();
-        String command = scriptCtx.getScriptText();
-        OperationLog.log("{0} Script REQ {1}: {2}", getConnectionDesc(), scriptLanguage, command);
+        String processedCommand = commandProcessor.process(scriptCtx);
+
+        OperationLog.log("{0} Script REQ {1}: {2}", getConnectionDesc(), scriptLanguage, processedCommand);
 
         String output;
         try {
 
-            output = exec(command, scriptCtx.getScriptArguments());
+            output = exec(processedCommand);
 
         } catch (Exception e) {
             OperationLog.error("{0} Script ERR {1}", getConnectionDesc(), e.getMessage());
             throw new ConnectorException("Script execution failed: "+e.getMessage(), e);
         }
 
-        OperationLog.log("{0} Script RES {1}", getConnectionDesc(), (output==null||output.isEmpty())?"no output":("output "+output.length()+" chars"));
+        OperationLog.log("{0} Script RES: {1}", getConnectionDesc(), (output==null||output.isEmpty())?"no output":("output "+output.length()+" chars"));
         LOG.ok("Script returned output\n{0}", output);
 
         return output;
     }
 
-    private String exec(String command, Map<String, Object> scriptArguments) {
+    // Exec can be run only once in each session. We need to explicitly connect and disconnect each time.
+    private String exec(String processedCommand) {
 
-        // TODO: process scriptArguments
+        connect();
 
         final Session.Command cmd;
         try {
-            cmd = session.exec(command);
+            cmd = session.exec(processedCommand);
         } catch (ConnectionException | TransportException e) {
             throw new ConnectorIOException("Network error while executing SSH command: "+e.getMessage(), e);
         }
@@ -225,6 +242,9 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
         }
 
         LOG.info("SSH command exit status: {0}", cmd.getExitStatus());
+
+        disconnect();
+
         return output;
     }
 }
