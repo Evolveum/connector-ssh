@@ -30,28 +30,56 @@ import org.identityconnectors.framework.spi.ConfigurationProperty;
  */
 public class SshConfiguration extends AbstractConfiguration {
 
+    /**
+     * Server hostname.
+     */
     private String host;
 
 //    private int port = DEFAULT_PORT;
 
+    /**
+     * Username of the user, used for authentication.
+     */
     private String username;
 
+    /**
+     * User password.
+     */
     private GuardedString password = null;
 
+    /**
+     * Authentication scheme for the SSH connection.
+     */
     private String authenticationScheme = AUTHENTICATION_SCHEME_PASSWORD;
 
     public static final String AUTHENTICATION_SCHEME_PASSWORD = "password";
-    public static final String AUTHENTICATION_SCHEME_PUBLIC_KEY = "publicKey";
+    public static final String AUTHENTICATION_SCHEME_PUBLIC_KEY = "publicKey"; // Not completely implemented yet
 
-    // WARNING: accepts all hosts in case that this is empty.
+    /**
+     * Known hosts in the usual "known_hosts" file format.
+     * This may be either one value, entries separated by newlines (as they are in the file).
+     * Or there may be multiple values, each of them containing a single known host entry.
+     *
+     * WARNING: If the knownHosts property is empty (has no values), the the connector blindly accepts any host.
+     */
     private String[] knownHosts;
 
+    /**
+     * Argument style, used to transform script arguments to command-line.
+     */
     private String argumentStyle = ARGUMENT_STYLE_DASH;
 
+    // command -f foo -b bar
     public static final String ARGUMENT_STYLE_DASH = "dash";
+
+    // command --fu=foo --bar=baz
 //    public static final String ARGUMENT_STYLE_DASHDASH = "dashdash";
-//    public static final String ARGUMENT_STYLE_SLASH = "slash";
-//    public static final String ARGUMENT_STYLE_VARIABLES_POWERSHELL = "variables-powershell";
+
+    // command /f foo /b bar
+    public static final String ARGUMENT_STYLE_SLASH = "slash";
+
+    // $fu='foo'; $bar='baz'; command $foo $bar
+    public static final String ARGUMENT_STYLE_VARIABLES_POWERSHELL = "variables-powershell";
 
     @ConfigurationProperty(order = 100)
     public String getHost() {

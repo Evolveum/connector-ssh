@@ -35,6 +35,8 @@
     <properties>
         <connectorPackage>com.evolveum.polygon.connector.ssh</connectorPackage>
         <connectorClass>SshConnector</connectorClass>
+        <!-- The tests are disabled by default, as they need a special server-side setup. -->
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <repositories>

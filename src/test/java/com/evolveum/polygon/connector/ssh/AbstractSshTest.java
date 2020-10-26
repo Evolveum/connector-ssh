@@ -35,6 +35,7 @@ public abstract class AbstractSshTest {
         config.setHost(getHostname());
         config.setUsername(getUsername());
         config.setPassword(new GuardedString(getPassword().toCharArray()));
+        addToConnectorConfiguration(config);
 
         return config;
     }
@@ -44,6 +45,12 @@ public abstract class AbstractSshTest {
     protected abstract String getUsername();
 
     protected abstract String getPassword();
+
+    protected abstract String getLaguage();
+
+    protected void addToConnectorConfiguration(SshConfiguration config) {
+    }
+
 
     private ConnectorFacade createConnectorFacade(SshConfiguration config) {
         ConnectorFacadeFactory factory = ConnectorFacadeFactory.getInstance();
@@ -55,5 +62,20 @@ public abstract class AbstractSshTest {
         return createConnectorFacade(createConfiguration());
     }
 
+    @Test
+    public void testTest() throws Exception {
+        ConnectorFacade connector = setupConnector();
+        connector.test();
+        // Nothing to assert here. If there is no exception then we are fine.
+    }
 
+
+    @Test
+    public void testEcho() throws Exception {
+        ConnectorFacade connector = setupConnector();
+
+        ping(connector);
+    }
+
+    protected abstract void ping(ConnectorFacade connector);
 }

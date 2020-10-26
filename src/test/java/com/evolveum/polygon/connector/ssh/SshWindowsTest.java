@@ -15,19 +15,24 @@
  */
 package com.evolveum.polygon.connector.ssh;
 
-import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
-import org.identityconnectors.framework.api.ConnectorFacadeFactory;
 import org.identityconnectors.framework.common.objects.ScriptContext;
-import org.identityconnectors.test.common.TestHelpers;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Test for Windows servers.
+ *
+ * This assumes that powershell is set as default shell on server.
+ *
+ * The tests are disabled by default, as they need a special server-side setup.
+ */
 public class SshWindowsTest extends AbstractSshTest {
+
+    private static final int PERF_ATTEMPTS = 10;
 
     @Override
     protected String getHostname() {
@@ -41,27 +46,15 @@ public class SshWindowsTest extends AbstractSshTest {
 
     @Override
     protected String getPassword() {
-        return "XXXXXXXXX";
+        return "XXXXXXXXXXXXXXX";
     }
 
-    @Test
-    public void testTest() throws Exception {
-        ConnectorFacade connector = setupConnector();
-        connector.test();
-        // Nothing to assert here. If there is no exception then we are fine.
+    protected String getLaguage() {
+        return "powershell";
     }
 
-
-    @Test
-    public void testEcho() throws Exception {
-        ConnectorFacade connector = setupConnector();
-
-        ScriptContext context = new ScriptContext("bash", "echo Hello World", null);
-        Object output = connector.runScriptOnResource(context, null);
-
-        System.out.println("Script output: "+output);
-
-        AssertJUnit.assertEquals("Hello World\r\n", output);
+    protected void addToConnectorConfiguration(SshConfiguration config) {
+        config.setArgumentStyle("variables-powershell");
     }
 
     /**
@@ -75,17 +68,16 @@ public class SshWindowsTest extends AbstractSshTest {
 
         // Executing "echo" by using arguments
         Map<String, Object> args1 = new HashMap<>();
-        args1.put("n", null);
-        args1.put(null, "Hello World");
-        ScriptContext context1 = new ScriptContext("bash", "echo", args1);
+        args1.put("foo", "bar");
+        args1.put(null, "baz");
+        ScriptContext context1 = new ScriptContext(getLaguage(), "echo $foo", args1);
         Object output1 = connector.runScriptOnResource(context1, null);
 
         System.out.println("Script output 1: "+output1);
 
-        // Heh, Windows ...
-        AssertJUnit.assertEquals("-n Hello World\r\n", output1);
+        AssertJUnit.assertEquals("bar\r\nbaz\r\n", output1);
 
-        ScriptContext context2 = new ScriptContext("bash", "echo Have a nice doomsday", null);
+        ScriptContext context2 = new ScriptContext(getLaguage(), "echo 'Have a nice doomsday'", null);
         Object output2 = connector.runScriptOnResource(context2, null);
 
         System.out.println("Script output 2: "+output2);
@@ -93,5 +85,28 @@ public class SshWindowsTest extends AbstractSshTest {
         AssertJUnit.assertEquals("Have a nice doomsday\r\n", output2);
     }
 
+    @Test
+    public void testPerformance() throws Exception {
+        ConnectorFacade connector = setupConnector();
+
+        long startTs = System.currentTimeMillis();
+        for (int i = 0; i <= PERF_ATTEMPTS; i++) {
+            ping(connector);
+        }
+        long endTs = System.currentTimeMillis();
+
+        System.out.println("PERF: "+PERF_ATTEMPTS+" attempts in "+(endTs-startTs)+"ms: "+((endTs-startTs)/PERF_ATTEMPTS)+"ms/attempt");
+    }
+
+    protected void ping(ConnectorFacade connector) {
+
+        ScriptContext context = new ScriptContext(getLaguage(), "echo 'Hello World'", null);
+        Object output = connector.runScriptOnResource(context, null);
+
+        System.out.println("Script output: "+output);
+
+        AssertJUnit.assertEquals("Hello World\r\n", output);
+
+    }
 
 }

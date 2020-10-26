@@ -37,6 +37,18 @@ public class CommandProcessor {
         if (arguments == null) {
             return command;
         }
+        if (configuration.getArgumentStyle() == null) {
+            return encodeArgumentsAndCommandToString(command, arguments);
+        }
+        switch (configuration.getArgumentStyle()) {
+            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_POWERSHELL:
+                return encodePowerShellVariablesAndCommandToString(command, arguments);
+            default:
+                return encodeArgumentsAndCommandToString(command, arguments);
+        }
+    }
+
+    private String encodeArgumentsAndCommandToString(String command, Map<String, Object> arguments) {
         StringBuilder commandLineBuilder = new StringBuilder();
         commandLineBuilder.append(command);
         String paramPrefix = getParamPrefix();
@@ -59,13 +71,45 @@ public class CommandProcessor {
         return commandLineBuilder.toString();
     }
 
-    protected String getParamPrefix() {
+    private String encodePowerShellVariablesAndCommandToString(String command, Map<String, Object> arguments) {
+        if (arguments == null) {
+            return command;
+        }
+        StringBuilder commandLineBuilder = new StringBuilder();
+        for (Map.Entry<String, Object> argEntry: arguments.entrySet()) {
+            if (argEntry.getKey() == null) {
+                // we want this to go last
+                continue;
+            }
+            commandLineBuilder.append("$").append(argEntry.getKey());
+            commandLineBuilder.append(" = ");
+            commandLineBuilder.append(quoteSingle(argEntry.getValue().toString()));
+            commandLineBuilder.append("; ");
+        }
+        commandLineBuilder.append(command);
+        if (arguments.get(null) != null) {
+            commandLineBuilder.append(" ");
+            commandLineBuilder.append(arguments.get(null));
+        }
+        return commandLineBuilder.toString();
+    }
+
+    private String quoteSingle(Object value) {
+        if (value == null) {
+            return "";
+        }
+        return "'" + value.toString().replaceAll("'", "''") + "'";
+    }
+
+    private String getParamPrefix() {
         if (configuration.getArgumentStyle() == null) {
             return "-";
         }
         switch (configuration.getArgumentStyle()) {
             case SshConfiguration.ARGUMENT_STYLE_DASH:
                 return "-";
+            case SshConfiguration.ARGUMENT_STYLE_SLASH:
+                return "/";
             default:
                 throw new ConfigurationException("Unknown value of argument style: "+configuration.getArgumentStyle());
         }

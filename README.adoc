@@ -1,0 +1,84 @@
+= SSH Connector
+
+ConnId/MidPoint connector for running provisioning scripts over SSH.
+
+This connector has *script execution capabilities only*.
+It is not a complete stand-alone connector.
+It is designed to used together with other connectors, such as LDAP or Active Directory connectors.
+
+== Status
+
+This connector is *experimental*.
+It is not finished yet.
+
+== Configuration
+
+Please see the source code of `SshConfiguration.java` for list of configuration properties.
+However, most configuration will be probably fine with the usual `host`, `username` and `password`.
+
+The `argumentStyle` configuration property can take following values:
+|====
+|argumentStyle | Example command | Description
+
+| `dash`
+| `command -f foo -b bar -c`
+| Ordinary UNIX-like command switches.
+
+| `dashdash`
+| `command --fu=foo --bar=baz`
+| The "long" argument style used by newer UNIX tools. +
+*This option is not implemented yet.*
+
+| `slash`
+| `command /foo /bar`
+| Old Windows argument style.
+
+| `variables-powershell`
+| `$fu='foo'; $bar='baz'; command $foo $bar`
+| PowerShell variable definition before the command.
+
+|====
+
+== Limitations
+
+* Only password authentication is supported, at least for now.
+There is some code for public key authentication, but it is untested and probably incomplete.
+
+* Only "execution mode" of SSH is supported.
+The connector will create SSH connection, authenticate, execute the command and tear down the connection.
+This is slow, but it is reliable.
+The "session mode" would allow to set up a session and keep it open.
+This is supposed to be much faster, as we would avoid connection overhead.
+However, that would also mean that we will have problems of detecting where command execution ends, the commands may influence session state, this may be shell-specific (different method for bash and powershell), etc.
+
+* Script language parameter is ignored.
+However, for future compatibility, we recommend using following values:
++
+|====
+| Script language value | Description
+
+| `sh`
+| Generic UNIX shell.
+No specific shell is assumed.
+
+| `bash`
+| Bourne Again Shell, the GNU classic.
+
+| `cmd`
+| Windows `cmd.exe` shell.
+
+| `powershell`
+| Windows PowerShell.
+|====
++
+Setting of script language does *not* influence the shell will be executed when SSH connection is opened.
+That is influenced by server or account setting, the client (connector) will not change that.
+This setting may influence how the connector interprets the command-line or script output.
+
+* The connector returns the output (stdout) of the script.
+The error stream (stderr) is not processed by the connector yet.
+
+* The connector cannot process script exit code.
+SSH provides the exit code, but there is no good way how to pass the exit code through the ConnId layer.
+
+If you do not like the limitations, we will be more than happy to accept a contribution.

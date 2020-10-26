@@ -15,18 +15,19 @@
  */
 package com.evolveum.polygon.connector.ssh;
 
-import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
-import org.identityconnectors.framework.api.ConnectorFacadeFactory;
 import org.identityconnectors.framework.common.objects.ScriptContext;
-import org.identityconnectors.test.common.TestHelpers;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Test configured to suit UNIX (Linux) environment.
+ *
+ * The tests are disabled by default, as they need a special server-side setup.
+ */
 public class SshUnixTest extends AbstractSshTest {
 
     @Override
@@ -44,24 +45,8 @@ public class SshUnixTest extends AbstractSshTest {
         return "XXXXXXXXX";
     }
 
-    @Test
-    public void testTest() throws Exception {
-        ConnectorFacade connector = setupConnector();
-        connector.test();
-        // Nothing to assert here. If there is no exception then we are fine.
-    }
-
-
-    @Test
-    public void testEcho() throws Exception {
-        ConnectorFacade connector = setupConnector();
-
-        ScriptContext context = new ScriptContext("bash", "echo \"Hello World\"", null);
-        Object output = connector.runScriptOnResource(context, null);
-
-        System.out.println("Script output: "+output);
-
-        AssertJUnit.assertEquals("Hello World\n", output);
+    protected String getLaguage() {
+        return "shell";
     }
 
     /**
@@ -93,5 +78,13 @@ public class SshUnixTest extends AbstractSshTest {
         AssertJUnit.assertEquals("Have a nice doomsday\n", output2);
     }
 
+    @Override
+    protected void ping(ConnectorFacade connector) {
+        ScriptContext context = new ScriptContext(getLaguage(), "echo \"Hello World\"", null);
+        Object output = connector.runScriptOnResource(context, null);
 
+        System.out.println("Script output: "+output);
+
+        AssertJUnit.assertEquals("Hello World\n", output);
+    }
 }
