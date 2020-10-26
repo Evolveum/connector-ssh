@@ -27,16 +27,16 @@ import org.testng.annotations.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SshUnixTest extends AbstractSshTest {
+public class SshWindowsTest extends AbstractSshTest {
 
     @Override
     protected String getHostname() {
-        return "localhost";
+        return "ad03.ad2019.lab.evolveum.com";
     }
 
     @Override
     protected String getUsername() {
-        return "jack";
+        return "sshtest";
     }
 
     @Override
@@ -56,12 +56,12 @@ public class SshUnixTest extends AbstractSshTest {
     public void testEcho() throws Exception {
         ConnectorFacade connector = setupConnector();
 
-        ScriptContext context = new ScriptContext("bash", "echo \"Hello World\"", null);
+        ScriptContext context = new ScriptContext("bash", "echo Hello World", null);
         Object output = connector.runScriptOnResource(context, null);
 
         System.out.println("Script output: "+output);
 
-        AssertJUnit.assertEquals("Hello World\n", output);
+        AssertJUnit.assertEquals("Hello World\r\n", output);
     }
 
     /**
@@ -76,21 +76,21 @@ public class SshUnixTest extends AbstractSshTest {
         // Executing "echo" by using arguments
         Map<String, Object> args1 = new HashMap<>();
         args1.put("n", null);
-        args1.put(null, "\"Hello World\"");
+        args1.put(null, "Hello World");
         ScriptContext context1 = new ScriptContext("bash", "echo", args1);
         Object output1 = connector.runScriptOnResource(context1, null);
 
         System.out.println("Script output 1: "+output1);
 
-        // Note: no \n here
-        AssertJUnit.assertEquals("Hello World", output1);
+        // Heh, Windows ...
+        AssertJUnit.assertEquals("-n Hello World\r\n", output1);
 
-        ScriptContext context2 = new ScriptContext("bash", "echo \"Have a nice doomsday\"", null);
+        ScriptContext context2 = new ScriptContext("bash", "echo Have a nice doomsday", null);
         Object output2 = connector.runScriptOnResource(context2, null);
 
         System.out.println("Script output 2: "+output2);
 
-        AssertJUnit.assertEquals("Have a nice doomsday\n", output2);
+        AssertJUnit.assertEquals("Have a nice doomsday\r\n", output2);
     }
 
 
