@@ -38,20 +38,25 @@ public class CommandProcessor {
             return command;
         }
         if (configuration.getArgumentStyle() == null) {
-            return encodeArgumentsAndCommandToString(command, arguments);
+            return encodeArgumentsAndCommandToString(command, arguments, "-");
         }
         switch (configuration.getArgumentStyle()) {
+            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_BASH:
+                return encodeVariablesAndCommandToString(command, arguments, "", false);
             case SshConfiguration.ARGUMENT_STYLE_VARIABLES_POWERSHELL:
-                return encodePowerShellVariablesAndCommandToString(command, arguments);
+                return encodeVariablesAndCommandToString(command, arguments, "$", true);
+            case SshConfiguration.ARGUMENT_STYLE_DASH:
+                return encodeArgumentsAndCommandToString(command, arguments, "-");
+            case SshConfiguration.ARGUMENT_STYLE_SLASH:
+                return encodeArgumentsAndCommandToString(command, arguments, "/");
             default:
-                return encodeArgumentsAndCommandToString(command, arguments);
+                throw new ConfigurationException("Unknown value of argument style: "+configuration.getArgumentStyle());
         }
     }
 
-    private String encodeArgumentsAndCommandToString(String command, Map<String, Object> arguments) {
+    private String encodeArgumentsAndCommandToString(String command, Map<String, Object> arguments, String paramPrefix) {
         StringBuilder commandLineBuilder = new StringBuilder();
         commandLineBuilder.append(command);
-        String paramPrefix = getParamPrefix();
         for (Map.Entry<String, Object> argEntry: arguments.entrySet()) {
             if (argEntry.getKey() == null) {
                 // we want this to go last
@@ -71,7 +76,7 @@ public class CommandProcessor {
         return commandLineBuilder.toString();
     }
 
-    private String encodePowerShellVariablesAndCommandToString(String command, Map<String, Object> arguments) {
+    private String encodeVariablesAndCommandToString(String command, Map<String, Object> arguments, String variablePrefix, boolean spaces) {
         if (arguments == null) {
             return command;
         }
@@ -81,8 +86,12 @@ public class CommandProcessor {
                 // we want this to go last
                 continue;
             }
-            commandLineBuilder.append("$").append(argEntry.getKey());
-            commandLineBuilder.append(" = ");
+            commandLineBuilder.append(variablePrefix).append(argEntry.getKey());
+            if (spaces) {
+                commandLineBuilder.append(" = ");
+            } else {
+                commandLineBuilder.append("=");
+            }
             commandLineBuilder.append(quoteSingle(argEntry.getValue().toString()));
             commandLineBuilder.append("; ");
         }
@@ -100,19 +109,4 @@ public class CommandProcessor {
         }
         return "'" + value.toString().replaceAll("'", "''") + "'";
     }
-
-    private String getParamPrefix() {
-        if (configuration.getArgumentStyle() == null) {
-            return "-";
-        }
-        switch (configuration.getArgumentStyle()) {
-            case SshConfiguration.ARGUMENT_STYLE_DASH:
-                return "-";
-            case SshConfiguration.ARGUMENT_STYLE_SLASH:
-                return "/";
-            default:
-                throw new ConfigurationException("Unknown value of argument style: "+configuration.getArgumentStyle());
-        }
-    }
-
 }

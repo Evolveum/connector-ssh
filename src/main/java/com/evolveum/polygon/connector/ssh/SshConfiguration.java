@@ -81,6 +81,9 @@ public class SshConfiguration extends AbstractConfiguration {
     // $fu='foo'; $bar='baz'; command $foo $bar
     public static final String ARGUMENT_STYLE_VARIABLES_POWERSHELL = "variables-powershell";
 
+    // fu='foo'; bar='baz'; command $foo $bar
+    public static final String ARGUMENT_STYLE_VARIABLES_BASH = "variables-bash";
+
     @ConfigurationProperty(order = 100)
     public String getHost() {
         return host;

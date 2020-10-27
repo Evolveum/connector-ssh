@@ -33,6 +33,10 @@ The `argumentStyle` configuration property can take following values:
 | `command /foo /bar`
 | Old Windows argument style.
 
+| `variables-bash`
+| `fu='foo'; bar='baz'; command $foo $bar`
+| Bash variable definition before the command.
+
 | `variables-powershell`
 | `$fu='foo'; $bar='baz'; command $foo $bar`
 | PowerShell variable definition before the command.
