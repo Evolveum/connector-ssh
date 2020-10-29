@@ -8,8 +8,9 @@ It is designed to used together with other connectors, such as LDAP or Active Di
 
 == Status
 
-This connector is *experimental*.
-It is not finished yet.
+This connector is *supportable*.
+However, the connector is not feature-complete.
+Some functionality may be missing.
 
 == Configuration
 
