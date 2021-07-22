@@ -229,8 +229,36 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
             throw new ConnectorIOException("Network error while executing SSH command: "+e.getMessage(), e);
         }
         String output;
+        String error;
+        String errorMsg;
         try {
+            LOG.info("---- executing ssh command -----------");
+            LOG.info("processedCommand: {0} ", processedCommand);
             output = IOUtils.readFully(cmd.getInputStream()).toString();
+            LOG.info("SSH command ouput: {0}", output);
+            error = IOUtils.readFully(cmd.getErrorStream()).toString();
+            LOG.info("SSH command error: {0}", error);
+            LOG.info("command error: {0}", error);
+            LOG.info("command exitErrorMsg: {0}", cmd.getExitErrorMessage());
+            LOG.info("command exitStatus: {0}", cmd.getExitStatus());
+            LOG.info("command exitSignal: {0}", cmd.getExitSignal());
+            LOG.info("--------------------------------------");
+
+            //throwing Exception based on exitStatus (e.g. !Integer.valueOf(0).equals(cmd.getExitStatus()) ) was not feasible
+            // - calling powershell successfully returned exitCode null
+            // - there may be return codes <> 0 having empty errorstream. E.g. calling grep (linux) having empty result
+            // simple solution: throw Exception if there is something in error stream
+            if (!error.isEmpty()){
+                LOG.error("---- error executing ssh command ----");
+                LOG.error("-- processedCommand: {0} ", processedCommand);
+                LOG.error("-- command ouput: {0}", output);
+                LOG.error("-- command error: {0}", error);
+                LOG.error("-- command exitErrorMsg: {0}", cmd.getExitErrorMessage());
+                LOG.error("-- command exitStatus: {0}", cmd.getExitStatus());
+                LOG.error("-- command exitSignal: {0}", cmd.getExitSignal());
+                LOG.error("--------------------------------------");
+                throw new ConnectorException("Error executing SSH command: "+ error);
+            }
         } catch (IOException e) {
             throw new ConnectorIOException("Error reading output of SSH command: "+e.getMessage(), e);
         }
