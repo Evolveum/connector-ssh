@@ -16,9 +16,7 @@
 
 package com.evolveum.polygon.connector.ssh;
 
-import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.exceptions.ConfigurationException;
 import org.identityconnectors.framework.spi.AbstractConfiguration;
 import org.identityconnectors.framework.spi.ConfigurationProperty;
 
@@ -84,6 +82,15 @@ public class SshConfiguration extends AbstractConfiguration {
     // fu='foo'; bar='baz'; command $foo $bar
     public static final String ARGUMENT_STYLE_VARIABLES_BASH = "variables-bash";
 
+    /**
+     * Defines how to handle NULL value arguments.
+     * If a script argument is NULL, it can be inserted as an empty string ("asEmpty") or it can be removed from the argument list ("asGone").
+     */
+    private String handleNullValues = HANDLE_NULL_AS_GONE;
+
+    public static final String HANDLE_NULL_AS_EMPTY_STRING = "asEmptyString";
+    public static final String HANDLE_NULL_AS_GONE = "asGone";
+
     @ConfigurationProperty(order = 100)
     public String getHost() {
         return host;
@@ -136,6 +143,15 @@ public class SshConfiguration extends AbstractConfiguration {
 
     public void setArgumentStyle(String argumentStyle) {
         this.argumentStyle = argumentStyle;
+    }
+
+    @ConfigurationProperty(order = 130)
+    public String getHandleNullValues() {
+        return handleNullValues;
+    }
+
+    public void setHandleNullValues(String handleNullValues) {
+        this.handleNullValues = handleNullValues;
     }
 
     @Override

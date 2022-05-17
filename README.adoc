@@ -44,6 +44,27 @@ The `argumentStyle` configuration property can take following values:
 
 |====
 
+The `handleNullValues` configuration property can take the following values:
+|====
+| handleNullValues | Description | Combination with `argumentStyle` | Example where `foo` is `null`
+
+| `asEmptyString`
+| Arguments that contain a `null` value will be interpreted as an empty string.
+| `dash` | `command -foo -bar baz`
+||| `slash` | `command /foo /bar baz`
+||| `variables-bash` | `foo=''; bar='baz'; command $foo $bar`
+||| `variables-powershell` | `$foo=''; $bar='baz'; command $foo $bar`
+
+| `asGone`
+| Arguments that contain a `null` value removed from the argument list.
+| `dash` | `command -bar baz`
+||| `slash` | `command /bar baz`
+||| `variables-bash` | `bar='baz'; command $foo $bar`
+||| `variables-powershell` | `$bar='baz'; command $foo $bar`
+
+|====
+
+
 == Limitations
 
 * Only password authentication is supported, at least for now.

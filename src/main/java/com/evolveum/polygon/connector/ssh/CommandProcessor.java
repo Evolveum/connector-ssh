@@ -62,11 +62,25 @@ public class CommandProcessor {
                 // we want this to go last
                 continue;
             }
-            commandLineBuilder.append(" ");
-            commandLineBuilder.append(paramPrefix).append(argEntry.getKey());
-            if (argEntry.getValue() != null) {
+            Object value = argEntry.getValue();
+            boolean insertAttribute = true;
+            if(value == null) {
+                switch (configuration.getHandleNullValues()) {
+                    case SshConfiguration.HANDLE_NULL_AS_EMPTY_STRING:
+                        value = "";
+                        break;
+                    case SshConfiguration.HANDLE_NULL_AS_GONE:
+                        insertAttribute = false;
+                        break;
+                    default:
+                        throw new ConfigurationException("Unknown value of handleNullValues: " + configuration.getHandleNullValues());
+                }
+            }
+            if(insertAttribute) {
                 commandLineBuilder.append(" ");
-                commandLineBuilder.append(argEntry.getValue().toString());
+                commandLineBuilder.append(paramPrefix).append(argEntry.getKey());
+                commandLineBuilder.append(" ");
+                commandLineBuilder.append(value);
             }
         }
         if (arguments.get(null) != null) {
@@ -86,14 +100,30 @@ public class CommandProcessor {
                 // we want this to go last
                 continue;
             }
-            commandLineBuilder.append(variablePrefix).append(argEntry.getKey());
-            if (spaces) {
-                commandLineBuilder.append(" = ");
-            } else {
-                commandLineBuilder.append("=");
+            Object value = argEntry.getValue();
+            boolean insertAttribute = true;
+            if(value == null) {
+                switch (configuration.getHandleNullValues()) {
+                    case SshConfiguration.HANDLE_NULL_AS_EMPTY_STRING:
+                        value = "";
+                        break;
+                    case SshConfiguration.HANDLE_NULL_AS_GONE:
+                        insertAttribute = false;
+                        break;
+                    default:
+                        throw new ConfigurationException("Unknown value of handleNullValues: " + configuration.getHandleNullValues());
+                }
             }
-            commandLineBuilder.append(quoteSingle(argEntry.getValue().toString()));
-            commandLineBuilder.append("; ");
+            if(insertAttribute) {
+                commandLineBuilder.append(variablePrefix).append(argEntry.getKey());
+                if (spaces) {
+                    commandLineBuilder.append(" = ");
+                } else {
+                    commandLineBuilder.append("=");
+                }
+                commandLineBuilder.append(quoteSingle(value));
+                commandLineBuilder.append("; ");
+            }
         }
         commandLineBuilder.append(command);
         if (arguments.get(null) != null) {
@@ -104,9 +134,6 @@ public class CommandProcessor {
     }
 
     private String quoteSingle(Object value) {
-        if (value == null) {
-            return "";
-        }
         return "'" + value.toString().replaceAll("'", "''") + "'";
     }
 }
