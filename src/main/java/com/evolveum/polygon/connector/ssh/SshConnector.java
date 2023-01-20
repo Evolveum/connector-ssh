@@ -80,7 +80,7 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
         ssh.addHostKeyVerifier(hostKeyVerifier);
         LOG.ok("Connecting to {0}", getConnectionDesc());
         try {
-            ssh.connect(configuration.getHost());
+            ssh.connect(configuration.getHost(), configuration.getPort());
         } catch (IOException e) {
             LOG.error("Error creating SSH connection to {0}: {1}", getHostDesc(), e.getMessage());
             throw new ConnectionFailedException("Error creating SSH connection to " + getHostDesc() + ": " + e.getMessage(), e);

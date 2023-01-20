@@ -33,7 +33,10 @@ public class SshConfiguration extends AbstractConfiguration {
      */
     private String host;
 
-//    private int port = DEFAULT_PORT;
+    /**
+     * Server port.
+     */
+    private int port = 22;
 
     /**
      * Username of the user, used for authentication.
@@ -101,6 +104,15 @@ public class SshConfiguration extends AbstractConfiguration {
     }
 
     @ConfigurationProperty(order = 101)
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    @ConfigurationProperty(order = 102)
     public String getUsername() {
         return username;
     }
@@ -109,7 +121,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.username = username;
     }
 
-    @ConfigurationProperty(order = 102)
+    @ConfigurationProperty(order = 103)
     public GuardedString getPassword() {
         return password;
     }
@@ -118,7 +130,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.password = password;
     }
 
-    @ConfigurationProperty(order = 103)
+    @ConfigurationProperty(order = 104)
     public String getAuthenticationScheme() {
         return authenticationScheme;
     }
