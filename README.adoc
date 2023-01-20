@@ -67,9 +67,6 @@ The `handleNullValues` configuration property can take the following values:
 
 == Limitations
 
-* Only password authentication is supported, at least for now.
-There is some code for public key authentication, but it is untested and probably incomplete.
-
 * Only "execution mode" of SSH is supported.
 The connector will create SSH connection, authenticate, execute the command and tear down the connection.
 This is slow, but it is reliable.
