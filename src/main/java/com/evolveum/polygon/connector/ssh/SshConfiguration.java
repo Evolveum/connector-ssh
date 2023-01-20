@@ -49,6 +49,17 @@ public class SshConfiguration extends AbstractConfiguration {
     private GuardedString password = null;
 
     /**
+     * Private Key for public key authentication.
+     * The format is PKCS8.
+     */
+    private GuardedString privateKey = null;
+
+    /**
+     * Passphrase for public key authentication.
+     */
+    private GuardedString passphrase = null;
+
+    /**
      * Authentication scheme for the SSH connection.
      */
     private String authenticationScheme = AUTHENTICATION_SCHEME_PASSWORD;
@@ -131,6 +142,24 @@ public class SshConfiguration extends AbstractConfiguration {
     }
 
     @ConfigurationProperty(order = 104)
+    public GuardedString getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setPrivateKey(GuardedString privateKey) {
+        this.privateKey = privateKey;
+    }
+
+    @ConfigurationProperty(order = 105)
+    public GuardedString getPassphrase() {
+        return passphrase;
+    }
+
+    public void setPassphrase(GuardedString passphrase) {
+        this.passphrase = passphrase;
+    }
+
+    @ConfigurationProperty(order = 106)
     public String getAuthenticationScheme() {
         return authenticationScheme;
     }
