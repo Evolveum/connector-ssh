@@ -17,10 +17,6 @@
 package com.evolveum.polygon.connector.ssh;
 
 import com.evolveum.polygon.common.GuardedStringAccessor;
-import com.evolveum.polygon.common.SchemaUtil;
-import net.schmizz.sshj.Config;
-import net.schmizz.sshj.ConfigImpl;
-import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
@@ -28,11 +24,16 @@ import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.HostKeyVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
-//import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
+import net.schmizz.sshj.userauth.password.PasswordUtils;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.exceptions.*;
-import org.identityconnectors.framework.common.objects.*;
+import org.identityconnectors.framework.common.exceptions.ConfigurationException;
+import org.identityconnectors.framework.common.exceptions.ConnectionFailedException;
+import org.identityconnectors.framework.common.exceptions.ConnectorException;
+import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
+import org.identityconnectors.framework.common.objects.OperationOptions;
+import org.identityconnectors.framework.common.objects.ScriptContext;
 import org.identityconnectors.framework.spi.Configuration;
 import org.identityconnectors.framework.spi.ConnectorClass;
 import org.identityconnectors.framework.spi.PoolableConnector;
@@ -40,11 +41,6 @@ import org.identityconnectors.framework.spi.operations.ScriptOnResourceOp;
 import org.identityconnectors.framework.spi.operations.TestOp;
 
 import java.io.IOException;
-import java.security.Security;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @ConnectorClass(displayNameKey = "connector.ssh.display", configurationClass = SshConfiguration.class)
@@ -80,7 +76,7 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
         ssh.addHostKeyVerifier(hostKeyVerifier);
         LOG.ok("Connecting to {0}", getConnectionDesc());
         try {
-            ssh.connect(configuration.getHost());
+            ssh.connect(configuration.getHost(), configuration.getPort());
         } catch (IOException e) {
             LOG.error("Error creating SSH connection to {0}: {1}", getHostDesc(), e.getMessage());
             throw new ConnectionFailedException("Error creating SSH connection to " + getHostDesc() + ": " + e.getMessage(), e);
@@ -131,12 +127,36 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     private void authenticatePublicKey() {
         LOG.ok("Authenticating to {0} using public key authentication", getConnectionDesc());
         try {
-            ssh.authPublickey(configuration.getUsername());
+            GuardedStringAccessor privateKey = new GuardedStringAccessor();
+            GuardedStringAccessor passphrase = new GuardedStringAccessor();
+
+            if (configuration.getPrivateKey() != null) {
+                configuration.getPrivateKey().access(privateKey);
+            }
+            if (configuration.getPassphrase() != null) {
+                configuration.getPassphrase().access(passphrase);
+            }
+
+            if (privateKey.getClearChars() != null) {
+                KeyProvider keyProvider;
+                try {
+                    if (passphrase.getClearChars() != null) {
+                        keyProvider = ssh.loadKeys(privateKey.getClearString(), null, PasswordUtils.createOneOff(passphrase.getClearChars()));
+                    } else {
+                        keyProvider = ssh.loadKeys(privateKey.getClearString(), null, null);
+                    }
+                } catch (IOException e) {
+                    throw new ConfigurationException("Error parsing private key for SSH public key authentication", e);
+                }
+                ssh.authPublickey(configuration.getUsername(), keyProvider);
+            } else {
+                ssh.authPublickey(configuration.getUsername());
+            }
         } catch (UserAuthException e) {
-            LOG.error("SSH public key authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
+            LOG.error(e, "SSH public key authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
             throw new ConnectionFailedException("SSH public key authentication as "+configuration.getUsername()+" to "+getHostDesc()+" failed: " + e.getMessage(), e);
         } catch (TransportException e) {
-            LOG.error("Communication error during SSH public key authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
+            LOG.error(e, "Communication error during SSH public key authentication as {0} to {1} failed: {2}", configuration.getUsername(), getHostDesc(), e.getMessage());
             throw new ConnectionFailedException("Communication error during SSH public key authentication as "+configuration.getUsername()+" to "+getHostDesc()+" failed: " + e.getMessage(), e);
         }
     }

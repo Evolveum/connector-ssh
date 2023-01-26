@@ -33,7 +33,10 @@ public class SshConfiguration extends AbstractConfiguration {
      */
     private String host;
 
-//    private int port = DEFAULT_PORT;
+    /**
+     * Server port.
+     */
+    private int port = 22;
 
     /**
      * Username of the user, used for authentication.
@@ -44,6 +47,17 @@ public class SshConfiguration extends AbstractConfiguration {
      * User password.
      */
     private GuardedString password = null;
+
+    /**
+     * Private Key for public key authentication.
+     * The format is PKCS8.
+     */
+    private GuardedString privateKey = null;
+
+    /**
+     * Passphrase for public key authentication.
+     */
+    private GuardedString passphrase = null;
 
     /**
      * Authentication scheme for the SSH connection.
@@ -101,6 +115,15 @@ public class SshConfiguration extends AbstractConfiguration {
     }
 
     @ConfigurationProperty(order = 101)
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    @ConfigurationProperty(order = 102)
     public String getUsername() {
         return username;
     }
@@ -109,7 +132,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.username = username;
     }
 
-    @ConfigurationProperty(order = 102)
+    @ConfigurationProperty(order = 103)
     public GuardedString getPassword() {
         return password;
     }
@@ -118,7 +141,25 @@ public class SshConfiguration extends AbstractConfiguration {
         this.password = password;
     }
 
-    @ConfigurationProperty(order = 103)
+    @ConfigurationProperty(order = 104)
+    public GuardedString getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setPrivateKey(GuardedString privateKey) {
+        this.privateKey = privateKey;
+    }
+
+    @ConfigurationProperty(order = 105)
+    public GuardedString getPassphrase() {
+        return passphrase;
+    }
+
+    public void setPassphrase(GuardedString passphrase) {
+        this.passphrase = passphrase;
+    }
+
+    @ConfigurationProperty(order = 106)
     public String getAuthenticationScheme() {
         return authenticationScheme;
     }
