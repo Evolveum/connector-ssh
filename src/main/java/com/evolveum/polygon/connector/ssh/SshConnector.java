@@ -186,7 +186,7 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
             }
             session = null;
         }
-        if (ssh.isConnected()) {
+        if (ssh != null && ssh.isConnected()) {
             LOG.ok("Disconnecting from {0}", getConnectionDesc());
             try {
                 ssh.disconnect();
