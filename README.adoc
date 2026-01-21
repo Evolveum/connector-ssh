@@ -18,6 +18,7 @@ Please see the source code of `SshConfiguration.java` for list of configuration 
 However, most configuration will be probably fine with the usual `host`, `username` and `password`.
 
 The `argumentStyle` configuration property can take following values:
+
 |====
 |argumentStyle | Example command | Description
 
@@ -45,6 +46,7 @@ The `argumentStyle` configuration property can take following values:
 |====
 
 The `handleNullValues` configuration property can take the following values:
+
 |====
 | handleNullValues | Description | Combination with `argumentStyle` | Example where `foo` is `null`
 
@@ -64,15 +66,36 @@ The `handleNullValues` configuration property can take the following values:
 
 |====
 
+The `variableTransport` configuration property can take the following values:
+
+|====
+| variableTransport | Description | Combination with `argumentStyle` | Example with `variableTransportEnvPrefix` set to `CONNID_ARG_`
+
+| `inplace` | Arguments will be moved inplace quoted in single quotes.
+              If arguments contain secrets, consider using transport env.
+              Single quotes in the value will be escaped by doubling them.
+| `variables-bash` | `foo='value1'; bar='valueWithQuotes''Inplace'; command $foo $bar`
+||| `variables-powershell` | `$foo='value1'; $bar='valueWithQuotes''Inplace'; command $foo $bar`
+
+| `env`
+| Arguments will be set as ssh envs with the `variableTransportEnvPrefix` as prefix.
+Make sure that the server allows env passing.
+| `variables-bash` | `foo=$CONNID_ARG_foo; bar=$CONNID_ARG_bar; command $foo $bar`
+||| `variables-powershell` | `$foo=$env:CONNID_ARG_foo; $bar=$env:CONNID_ARG_bar; command $foo $bar`
+
+|====
+
+The `variableTransportEnvPrefix` configuration property sets the prefix for environment variable transport.
+The default value is `CONNID_ARG_`.
 
 == Limitations
 
 * Only "execution mode" of SSH is supported.
-The connector will create SSH connection, authenticate, execute the command and tear down the connection.
+The connector will create SSH connection, authenticate, (maybe) set envs, execute the command and tear down the connection.
 This is slow, but it is reliable.
 The "session mode" would allow to set up a session and keep it open.
 This is supposed to be much faster, as we would avoid connection overhead.
-However, that would also mean that we will have problems of detecting where command execution ends, the commands may influence session state, this may be shell-specific (different method for bash and powershell), etc.
+However, that would also mean that we will have problems of detecting where command execution ends, the commands may influence session state, this may be shell-specific (different method for bash and powershell), the envs may leak into other commands, etc.
 
 * Script language parameter is ignored.
 However, for future compatibility, we recommend using following values:
@@ -103,5 +126,9 @@ The error stream (stderr) is not processed by the connector yet.
 
 * The connector cannot process script exit code.
 SSH provides the exit code, but there is no good way how to pass the exit code through the ConnId layer.
+
+* Passing arguments as envs is only supported for `variables-bash` and `variables-powershell` argument styles.
+The value length is limited by the maximum env size on the server side.
+Windows is more restrictive than Linux.
 
 If you do not like the limitations, we will be more than happy to accept a contribution.
