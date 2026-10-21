@@ -35,8 +35,6 @@
     <properties>
         <connectorPackage>com.evolveum.polygon.connector.ssh</connectorPackage>
         <connectorClass>SshConnector</connectorClass>
-        <!-- The tests are disabled by default, as they need a special server-side setup. -->
-        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <repositories>
@@ -74,6 +72,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Live SSH tests require an explicitly selected test and a configured server. -->
+                    <excludes>
+                        <exclude>**/SshUnixTest.java</exclude>
+                        <exclude>**/SshWindowsTest.java</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

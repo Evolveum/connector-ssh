@@ -24,6 +24,10 @@ import org.identityconnectors.test.common.TestHelpers;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +39,16 @@ public abstract class AbstractSshTest {
         config.setHost(getHostname());
         config.setUsername(getUsername());
         config.setPassword(new GuardedString(getPassword().toCharArray()));
+        String knownHostsFile = System.getProperty("ssh.test.knownHostsFile");
+        if (knownHostsFile == null || knownHostsFile.trim().isEmpty()) {
+            throw new IllegalStateException("Live SSH tests require -Dssh.test.knownHostsFile with verified server host keys");
+        }
+        try {
+            config.setKnownHosts(new String[]{new String(
+                    Files.readAllBytes(Paths.get(knownHostsFile)), StandardCharsets.UTF_8)});
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read the live SSH test known_hosts file", e);
+        }
         addToConnectorConfiguration(config);
 
         return config;

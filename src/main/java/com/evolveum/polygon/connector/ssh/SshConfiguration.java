@@ -72,7 +72,8 @@ public class SshConfiguration extends AbstractConfiguration {
      * This may be either one value, entries separated by newlines (as they are in the file).
      * Or there may be multiple values, each of them containing a single known host entry.
      *
-     * WARNING: If the knownHosts property is empty (has no values), the the connector blindly accepts any host.
+     * Required: at least one SSH host key entry must be configured.
+     * Missing or invalid entries are rejected before connecting.
      */
     private String[] knownHosts;
 
@@ -168,7 +169,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.authenticationScheme = authenticationScheme;
     }
 
-    @ConfigurationProperty(order = 110)
+    @ConfigurationProperty(order = 110, required = true)
     public String[] getKnownHosts() {
         return knownHosts;
     }
@@ -197,6 +198,7 @@ public class SshConfiguration extends AbstractConfiguration {
 
     @Override
     public void validate() {
+        new ConnectorKnownHostsVerifier().parse(knownHosts);
     }
 
 }
