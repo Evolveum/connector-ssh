@@ -96,6 +96,12 @@ mvn.cmd '-Dtest=SshUnixTest' '-Dssh.test.knownHostsFile=C:\ssh-test\known_hosts'
 Use `SshWindowsTest` instead for a Windows server configured with PowerShell as its default shell.
 The live tests fail before connecting if the known-hosts file is missing or invalid.
 
+== Public SSH integration tests
+
+Run `mvn -Pintegration-tests verify` to include and execute also integration SSH tests
+using the bundled `src/test/resources/known_hosts/github.known_hosts` fixture.
+No credentials or additional parameters are needed.
+
 == Limitations
 
 * Only "execution mode" of SSH is supported.

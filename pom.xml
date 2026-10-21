@@ -83,6 +83,43 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <properties>
+                <ssh.test.knownHostsFile>${project.basedir}/src/test/resources/known_hosts/github.known_hosts</ssh.test.knownHostsFile>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <!-- Match the Surefire version inherited from connector-parent. -->
+                        <version>2.12.4</version>
+                        <configuration>
+                            <includes>
+                                <include>**/PublicSsh*IT.java</include>
+                            </includes>
+                            <failIfNoTests>true</failIfNoTests>
+                            <systemPropertyVariables>
+                                <ssh.test.knownHostsFile>${ssh.test.knownHostsFile}</ssh.test.knownHostsFile>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>public-ssh</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <dependencies>
 
         <dependency>
