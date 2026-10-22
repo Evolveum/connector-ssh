@@ -20,9 +20,7 @@ import net.schmizz.sshj.transport.verification.HostKeyVerifier;
 import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts;
 import org.identityconnectors.framework.common.exceptions.ConfigurationException;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringReader;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -32,22 +30,34 @@ public class ConnectorKnownHostsVerifier implements HostKeyVerifier  {
     private final List<OpenSSHKnownHosts.KnownHostEntry> entries = new ArrayList<>();
 
     public ConnectorKnownHostsVerifier parse(final String[] knownHosts) {
-        if (knownHosts == null) {
-            return this;
+        entries.clear();
+        if (knownHosts == null || knownHosts.length == 0) {
+            throw new ConfigurationException("knownHosts must contain at least one SSH host key entry");
         }
+        final List<OpenSSHKnownHosts.KnownHostEntry> parsedEntries = new ArrayList<>();
         for (String knownHost : knownHosts) {
+            if (knownHost == null) {
+                throw new ConfigurationException("knownHosts must not contain null values");
+            }
             try {
-                final OpenSSHKnownHosts hosts = new OpenSSHKnownHosts(new StringReader(knownHost));
+                final String keyLines = KnownHostsContentFilter.removeIgnorableLines(knownHost);
+                final OpenSSHKnownHosts hosts = new OpenSSHKnownHosts(new StringReader(keyLines));
                 for ( OpenSSHKnownHosts.KnownHostEntry entry : hosts.entries() ) {
-                    if (entry != null) {
-                        entries.add(entry);
+                    if (entry instanceof OpenSSHKnownHosts.BadHostEntry) {
+                        throw new ConfigurationException("knownHosts contains an invalid or unsupported entry");
+                    }
+                    if (entry instanceof OpenSSHKnownHosts.HostEntry) {
+                        parsedEntries.add(entry);
                     }
                 }
             } catch (IOException e) {
-                throw new ConfigurationException("Error parsing known hosts entry "+knownHost+": "+e.getMessage(), e);
+                throw new ConfigurationException("Error parsing knownHosts entry: " + e.getMessage(), e);
             }
         }
-
+        if (parsedEntries.isEmpty()) {
+            throw new ConfigurationException("knownHosts must contain at least one SSH host key entry");
+        }
+        entries.addAll(parsedEntries);
         return this;
     }
 
@@ -55,7 +65,7 @@ public class ConnectorKnownHostsVerifier implements HostKeyVerifier  {
     @Override
     public boolean verify(String hostname, int port, PublicKey key) {
         if (entries.isEmpty()) {
-            return true;
+            return false;
         }
 
         final KeyType type = KeyType.fromKey(key);
