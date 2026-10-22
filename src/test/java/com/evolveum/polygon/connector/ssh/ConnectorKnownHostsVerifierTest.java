@@ -25,7 +25,9 @@ import org.testng.annotations.Test;
 import java.security.KeyPairGenerator;
 import java.security.PublicKey;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 public class ConnectorKnownHostsVerifierTest {
     private static final String HOST = "target.example";
@@ -54,6 +56,9 @@ public class ConnectorKnownHostsVerifierTest {
                 {new String[]{""}},
                 {new String[]{" \t\n"}},
                 {new String[]{"# comment only"}},
+                {new String[]{" \t# indented comment only"}},
+                {new String[]{" \t\r\n  # comment\r\n\t\r\n"}},
+                {new String[]{" \t", "# comment", " \t# another comment", ""}},
                 {new String[]{null}},
                 {new String[]{"invalid entry"}},
                 {new String[]{"target.example unsupported-key AAAA"}},
@@ -117,6 +122,36 @@ public class ConnectorKnownHostsVerifierTest {
         }
     }
 
+    @DataProvider(name = "lineSeparators")
+    public Object[][] lineSeparators() {
+        return new Object[][]{{"\n"}, {"\r\n"}, {"\r"}};
+    }
+
+    @Test(dataProvider = "lineSeparators")
+    public void acceptsWhitespaceAndIndentedCommentsAroundKeys(String newline) {
+        String value = " \t" + newline + " \t# invalid entry inside a comment" + newline
+                + "\t" + trustedEntry + "  " + newline + "\t" + newline
+                + "   # trailing comment";
+        ConnectorKnownHostsVerifier verifier = new ConnectorKnownHostsVerifier().parse(new String[]{value});
+        assertTrue(verifier.verify(HOST, 22, trustedKey));
+        assertFalse(verifier.verify(HOST, 22, otherKey));
+
+        SshConfiguration configuration = new SshConfiguration();
+        configuration.setKnownHosts(new String[]{value});
+        configuration.validate();
+        SshConnector connector = new SshConnector();
+        connector.init(configuration);
+        connector.dispose();
+    }
+
+    @Test
+    public void acceptsIgnorableValuesAlongsideValidKey() {
+        ConnectorKnownHostsVerifier verifier = new ConnectorKnownHostsVerifier().parse(
+                new String[]{" \t", " \t# comment", "", trustedEntry, "\t# trailing comment"});
+        assertTrue(verifier.verify(HOST, 22, trustedKey));
+        assertFalse(verifier.verify(HOST, 22, otherKey));
+    }
+
     @Test
     public void rejectsRevokedKey() {
         ConnectorKnownHostsVerifier verifier = new ConnectorKnownHostsVerifier()
@@ -136,7 +171,7 @@ public class ConnectorKnownHostsVerifierTest {
     public void failedParsingDoesNotLeaveTrustedKeys() {
         ConnectorKnownHostsVerifier verifier = new ConnectorKnownHostsVerifier().parse(new String[]{trustedEntry});
         try {
-            verifier.parse(new String[]{trustedEntry, "invalid entry"});
+            verifier.parse(new String[]{" \t# comment\n\t\n" + trustedEntry, "\t\ninvalid entry\n # comment"});
             fail("Malformed configuration must be rejected");
         } catch (ConfigurationException expected) {
             assertFalse(verifier.verify(HOST, 22, trustedKey));

@@ -19,6 +19,8 @@ Configure `host`, `username`, the authentication credentials, and `knownHosts`.
 
 The `knownHosts` property is required and contains trusted SSH server public keys in OpenSSH `known_hosts` format.
 It accepts multiple values or one value containing multiple lines; it is not a file path.
+Blank or whitespace-only lines and comments starting with `#` after optional indentation are ignored.
+At least one SSH host key entry is still required; malformed key entries are rejected.
 For port 22, use the hostname or IP address used in `host`.
 The server must present a matching key for the configured host and port.
 Missing, empty, comment-only, or invalid configuration is rejected before connecting.

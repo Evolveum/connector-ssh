@@ -40,7 +40,8 @@ public class ConnectorKnownHostsVerifier implements HostKeyVerifier  {
                 throw new ConfigurationException("knownHosts must not contain null values");
             }
             try {
-                final OpenSSHKnownHosts hosts = new OpenSSHKnownHosts(new StringReader(knownHost));
+                final String keyLines = KnownHostsContentFilter.removeIgnorableLines(knownHost);
+                final OpenSSHKnownHosts hosts = new OpenSSHKnownHosts(new StringReader(keyLines));
                 for ( OpenSSHKnownHosts.KnownHostEntry entry : hosts.entries() ) {
                     if (entry instanceof OpenSSHKnownHosts.BadHostEntry) {
                         throw new ConfigurationException("knownHosts contains an invalid or unsupported entry");
