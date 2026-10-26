@@ -23,6 +23,7 @@ import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.HostKeyVerifier;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
@@ -67,7 +68,8 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     public void init(Configuration configuration) {
         LOG.info("Initializing {0} connector instance {1}", this.getClass().getSimpleName(), this);
         this.configuration = (SshConfiguration)configuration;
-        this.hostKeyVerifier = new ConnectorKnownHostsVerifier().parse(this.configuration.getKnownHosts());
+        this.hostKeyVerifier = this.configuration.getKnownHostsVerification()
+                ? new ConnectorKnownHostsVerifier().parse(this.configuration.getKnownHosts()) : new PromiscuousVerifier();
         this.commandProcessor = new CommandProcessor(this.configuration);
     }
 

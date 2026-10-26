@@ -17,18 +17,22 @@ Some functionality may be missing.
 Please see the source code of `SshConfiguration.java` for list of configuration properties.
 Configure `host`, `username`, the authentication credentials, and `knownHosts`.
 
-The `knownHosts` property is required and contains trusted SSH server public keys in OpenSSH `known_hosts` format.
+The `knownHostsVerification` switch is enabled by default and appears immediately before `knownHosts` in the configuration form.
+When enabled, `knownHosts` is required and contains trusted SSH server public keys in OpenSSH `known_hosts` format.
 It accepts multiple values or one value containing multiple lines; it is not a file path.
 Blank or whitespace-only lines and comments starting with `#` after optional indentation are ignored.
 At least one SSH host key entry is still required; malformed key entries are rejected.
 For port 22, use the hostname or IP address used in `host`.
-The server must present a matching key for the configured host and port.
+The server must present a matching key for the configured host.
 Missing, empty, comment-only, or invalid configuration is rejected before connecting.
 Verify the server key or its fingerprint through a trusted channel before configuring it;
 collecting a key from the network alone does not establish trust.
 
+Setting `knownHostsVerification` to `false` disables server host key verification and ignores `knownHosts`, even if it is missing or invalid.
+Any server key is then accepted. This removes protection against server impersonation; user authentication is still required.
+
 *Upgrade note:* Earlier versions accepted any server key when `knownHosts` was empty.
-Existing configurations relying on that behavior must supply verified host keys before upgrading.
+Existing configurations relying on that behavior must supply verified host keys or explicitly disable `knownHostsVerification`.
 There is no automatic trust-on-first-use or accept-all fallback.
 
 The `argumentStyle` configuration property can take following values:

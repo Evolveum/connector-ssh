@@ -67,14 +67,12 @@ public class SshConfiguration extends AbstractConfiguration {
     public static final String AUTHENTICATION_SCHEME_PASSWORD = "password";
     public static final String AUTHENTICATION_SCHEME_PUBLIC_KEY = "publicKey"; // Not completely implemented yet
 
+    private boolean knownHostsVerification = true;
+
     /**
-     * Known hosts in the usual "known_hosts" file format.
-     * This may be either one value, entries separated by newlines (as they are in the file).
-     * Or there may be multiple values, each of them containing a single known host entry.
-     *
-     * Required: at least one SSH host key entry must be configured.
-     * Missing or invalid entries are rejected before connecting.
-     */
+    Trusted SSH host keys in OpenSSH known_hosts format, supplied as multiple values or multiline content.
+    Required and validated only when knownHostsVerification is enabled; otherwise ignored.
+    */
     private String[] knownHosts;
 
     /**
@@ -169,7 +167,19 @@ public class SshConfiguration extends AbstractConfiguration {
         this.authenticationScheme = authenticationScheme;
     }
 
-    @ConfigurationProperty(order = 110, required = true)
+    /**
+    Verifies server host keys by default. Disabling this accepts any server key without checking knownHosts.
+    */
+    @ConfigurationProperty(order = 109)
+    public boolean getKnownHostsVerification() {
+        return knownHostsVerification;
+    }
+
+    public void setKnownHostsVerification(boolean verification) {
+        this.knownHostsVerification = verification;
+    }
+
+    @ConfigurationProperty(order = 110)
     public String[] getKnownHosts() {
         return knownHosts;
     }
@@ -196,9 +206,14 @@ public class SshConfiguration extends AbstractConfiguration {
         this.handleNullValues = handleNullValues;
     }
 
+    /**
+    Rejects missing or invalid host keys only when verification is enabled.
+    */
     @Override
     public void validate() {
-        new ConnectorKnownHostsVerifier().parse(knownHosts);
+        if (knownHostsVerification) {
+            new ConnectorKnownHostsVerifier().parse(knownHosts);
+        }
     }
 
 }
