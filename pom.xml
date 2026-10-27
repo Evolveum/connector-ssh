@@ -165,6 +165,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+            <version>2.20.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>
 

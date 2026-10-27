@@ -86,7 +86,8 @@ The `handleNullValues` configuration property can take the following values:
 == Tests
 
 Run the local regression tests with `mvn test`, or build the connector with `mvn verify`.
-These tests do not require an SSH server.
+The host verification tests start an embedded SSH server on the loopback interface with generated keys held in memory.
+They require no external SSH service, credentials, or known-hosts file.
 
 The existing `SshUnixTest` and `SshWindowsTest` tests require a specially configured live server
 and are excluded from the default test run.
