@@ -113,7 +113,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.host = host;
     }
 
-    @ConfigurationProperty(order = 101)
+    @ConfigurationProperty(order = 110)
     public int getPort() {
         return port;
     }
@@ -122,7 +122,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.port = port;
     }
 
-    @ConfigurationProperty(order = 102)
+    @ConfigurationProperty(order = 120)
     public String getUsername() {
         return username;
     }
@@ -131,7 +131,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.username = username;
     }
 
-    @ConfigurationProperty(order = 103)
+    @ConfigurationProperty(order = 130)
     public GuardedString getPassword() {
         return password;
     }
@@ -140,7 +140,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.password = password;
     }
 
-    @ConfigurationProperty(order = 104)
+    @ConfigurationProperty(order = 140)
     public GuardedString getPrivateKey() {
         return privateKey;
     }
@@ -149,7 +149,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.privateKey = privateKey;
     }
 
-    @ConfigurationProperty(order = 105)
+    @ConfigurationProperty(order = 150)
     public GuardedString getPassphrase() {
         return passphrase;
     }
@@ -158,7 +158,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.passphrase = passphrase;
     }
 
-    @ConfigurationProperty(order = 106)
+    @ConfigurationProperty(order = 160)
     public String getAuthenticationScheme() {
         return authenticationScheme;
     }
@@ -170,7 +170,7 @@ public class SshConfiguration extends AbstractConfiguration {
     /**
     Verifies server host keys by default. Disabling this accepts any server key without checking knownHosts.
     */
-    @ConfigurationProperty(order = 109)
+    @ConfigurationProperty(order = 170)
     public boolean getKnownHostsVerification() {
         return knownHostsVerification;
     }
@@ -179,7 +179,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.knownHostsVerification = verification;
     }
 
-    @ConfigurationProperty(order = 110)
+    @ConfigurationProperty(order = 180)
     public String[] getKnownHosts() {
         return knownHosts;
     }
@@ -188,7 +188,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.knownHosts = knownHosts;
     }
 
-    @ConfigurationProperty(order = 120)
+    @ConfigurationProperty(order = 190)
     public String getArgumentStyle() {
         return argumentStyle;
     }
@@ -197,7 +197,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.argumentStyle = argumentStyle;
     }
 
-    @ConfigurationProperty(order = 130)
+    @ConfigurationProperty(order = 200)
     public String getHandleNullValues() {
         return handleNullValues;
     }
