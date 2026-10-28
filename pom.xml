@@ -86,9 +86,6 @@
     <profiles>
         <profile>
             <id>integration-tests</id>
-            <properties>
-                <ssh.test.knownHostsFile>${project.basedir}/src/test/resources/known_hosts/github.known_hosts</ssh.test.knownHostsFile>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -98,16 +95,13 @@
                         <version>2.12.4</version>
                         <configuration>
                             <includes>
-                                <include>**/PublicSsh*IT.java</include>
+                                <include>**/*IT.java</include>
                             </includes>
                             <failIfNoTests>true</failIfNoTests>
-                            <systemPropertyVariables>
-                                <ssh.test.knownHostsFile>${ssh.test.knownHostsFile}</ssh.test.knownHostsFile>
-                            </systemPropertyVariables>
                         </configuration>
                         <executions>
                             <execution>
-                                <id>public-ssh</id>
+                                <id>ssh-integration-tests</id>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
@@ -162,6 +156,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+            <version>2.20.0</version>
             <scope>test</scope>
         </dependency>
 

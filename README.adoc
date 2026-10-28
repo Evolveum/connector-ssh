@@ -17,18 +17,22 @@ Some functionality may be missing.
 Please see the source code of `SshConfiguration.java` for list of configuration properties.
 Configure `host`, `username`, the authentication credentials, and `knownHosts`.
 
-The `knownHosts` property is required and contains trusted SSH server public keys in OpenSSH `known_hosts` format.
+The `knownHostsVerification` switch is enabled by default and appears immediately before `knownHosts` in the configuration form.
+When enabled, `knownHosts` is required and contains trusted SSH server public keys in OpenSSH `known_hosts` format.
 It accepts multiple values or one value containing multiple lines; it is not a file path.
 Blank or whitespace-only lines and comments starting with `#` after optional indentation are ignored.
 At least one SSH host key entry is still required; malformed key entries are rejected.
 For port 22, use the hostname or IP address used in `host`.
-The server must present a matching key for the configured host and port.
+The server must present a matching key for the configured host.
 Missing, empty, comment-only, or invalid configuration is rejected before connecting.
 Verify the server key or its fingerprint through a trusted channel before configuring it;
 collecting a key from the network alone does not establish trust.
 
+Setting `knownHostsVerification` to `false` disables server host key verification and ignores `knownHosts`, even if it is missing or invalid.
+Any server key is then accepted. This removes protection against server impersonation; user authentication is still required.
+
 *Upgrade note:* Earlier versions accepted any server key when `knownHosts` was empty.
-Existing configurations relying on that behavior must supply verified host keys before upgrading.
+Existing configurations relying on that behavior must supply verified host keys or explicitly disable `knownHostsVerification`.
 There is no automatic trust-on-first-use or accept-all fallback.
 
 The `argumentStyle` configuration property can take following values:
@@ -81,8 +85,8 @@ The `handleNullValues` configuration property can take the following values:
 
 == Tests
 
-Run the local regression tests with `mvn test`, or build the connector with `mvn verify`.
-These tests do not require an SSH server.
+Run the unit tests with `mvn test`, or build the connector with `mvn verify`.
+Surefire runs the unit tests; SSH integration tests require the `integration-tests` profile described below.
 
 The existing `SshUnixTest` and `SshWindowsTest` tests require a specially configured live server
 and are excluded from the default test run.
@@ -98,11 +102,12 @@ mvn.cmd '-Dtest=SshUnixTest' '-Dssh.test.knownHostsFile=C:\ssh-test\known_hosts'
 Use `SshWindowsTest` instead for a Windows server configured with PowerShell as its default shell.
 The live tests fail before connecting if the known-hosts file is missing or invalid.
 
-== Public SSH integration tests
+== Local SSH integration tests
 
-Run `mvn -Pintegration-tests verify` to include and execute also integration SSH tests
-using the bundled `src/test/resources/known_hosts/github.known_hosts` fixture.
-No credentials or additional parameters are needed.
+Run `mvn -Pintegration-tests verify` to execute both unit tests and local SSH integration tests.
+Maven Failsafe runs classes named `*IT` in the `integration-test` phase and checks their results in the `verify` phase.
+`SshVerificationIT` starts an embedded SSH server on the loopback interface with generated keys held in memory.
+It requires no external SSH service, credentials, or known-hosts file.
 
 == Limitations
 

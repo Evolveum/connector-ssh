@@ -67,14 +67,12 @@ public class SshConfiguration extends AbstractConfiguration {
     public static final String AUTHENTICATION_SCHEME_PASSWORD = "password";
     public static final String AUTHENTICATION_SCHEME_PUBLIC_KEY = "publicKey"; // Not completely implemented yet
 
+    private boolean knownHostsVerification = true;
+
     /**
-     * Known hosts in the usual "known_hosts" file format.
-     * This may be either one value, entries separated by newlines (as they are in the file).
-     * Or there may be multiple values, each of them containing a single known host entry.
-     *
-     * Required: at least one SSH host key entry must be configured.
-     * Missing or invalid entries are rejected before connecting.
-     */
+    Trusted SSH host keys in OpenSSH known_hosts format, supplied as multiple values or multiline content.
+    Required and validated only when knownHostsVerification is enabled; otherwise ignored.
+    */
     private String[] knownHosts;
 
     /**
@@ -115,7 +113,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.host = host;
     }
 
-    @ConfigurationProperty(order = 101)
+    @ConfigurationProperty(order = 110)
     public int getPort() {
         return port;
     }
@@ -124,7 +122,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.port = port;
     }
 
-    @ConfigurationProperty(order = 102)
+    @ConfigurationProperty(order = 120)
     public String getUsername() {
         return username;
     }
@@ -133,7 +131,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.username = username;
     }
 
-    @ConfigurationProperty(order = 103)
+    @ConfigurationProperty(order = 130)
     public GuardedString getPassword() {
         return password;
     }
@@ -142,7 +140,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.password = password;
     }
 
-    @ConfigurationProperty(order = 104)
+    @ConfigurationProperty(order = 140)
     public GuardedString getPrivateKey() {
         return privateKey;
     }
@@ -151,7 +149,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.privateKey = privateKey;
     }
 
-    @ConfigurationProperty(order = 105)
+    @ConfigurationProperty(order = 150)
     public GuardedString getPassphrase() {
         return passphrase;
     }
@@ -160,7 +158,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.passphrase = passphrase;
     }
 
-    @ConfigurationProperty(order = 106)
+    @ConfigurationProperty(order = 160)
     public String getAuthenticationScheme() {
         return authenticationScheme;
     }
@@ -169,7 +167,19 @@ public class SshConfiguration extends AbstractConfiguration {
         this.authenticationScheme = authenticationScheme;
     }
 
-    @ConfigurationProperty(order = 110, required = true)
+    /**
+    Verifies server host keys by default. Disabling this accepts any server key without checking knownHosts.
+    */
+    @ConfigurationProperty(order = 170)
+    public boolean getKnownHostsVerification() {
+        return knownHostsVerification;
+    }
+
+    public void setKnownHostsVerification(boolean verification) {
+        this.knownHostsVerification = verification;
+    }
+
+    @ConfigurationProperty(order = 180)
     public String[] getKnownHosts() {
         return knownHosts;
     }
@@ -178,7 +188,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.knownHosts = knownHosts;
     }
 
-    @ConfigurationProperty(order = 120)
+    @ConfigurationProperty(order = 190)
     public String getArgumentStyle() {
         return argumentStyle;
     }
@@ -187,7 +197,7 @@ public class SshConfiguration extends AbstractConfiguration {
         this.argumentStyle = argumentStyle;
     }
 
-    @ConfigurationProperty(order = 130)
+    @ConfigurationProperty(order = 200)
     public String getHandleNullValues() {
         return handleNullValues;
     }
@@ -196,9 +206,14 @@ public class SshConfiguration extends AbstractConfiguration {
         this.handleNullValues = handleNullValues;
     }
 
+    /**
+    Rejects missing or invalid host keys only when verification is enabled.
+    */
     @Override
     public void validate() {
-        new ConnectorKnownHostsVerifier().parse(knownHosts);
+        if (knownHostsVerification) {
+            new ConnectorKnownHostsVerifier().parse(knownHosts);
+        }
     }
 
 }
