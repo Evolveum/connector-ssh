@@ -86,9 +86,6 @@
     <profiles>
         <profile>
             <id>integration-tests</id>
-            <properties>
-                <ssh.test.knownHostsFile>${project.basedir}/src/test/resources/known_hosts/github.known_hosts</ssh.test.knownHostsFile>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -98,16 +95,13 @@
                         <version>2.12.4</version>
                         <configuration>
                             <includes>
-                                <include>**/PublicSsh*IT.java</include>
+                                <include>**/*IT.java</include>
                             </includes>
                             <failIfNoTests>true</failIfNoTests>
-                            <systemPropertyVariables>
-                                <ssh.test.knownHostsFile>${ssh.test.knownHostsFile}</ssh.test.knownHostsFile>
-                            </systemPropertyVariables>
                         </configuration>
                         <executions>
                             <execution>
-                                <id>public-ssh</id>
+                                <id>ssh-integration-tests</id>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>

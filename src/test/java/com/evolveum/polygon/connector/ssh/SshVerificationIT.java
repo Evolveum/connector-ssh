@@ -50,7 +50,7 @@ import static org.testng.Assert.fail;
 Exercises connector initialization, SSH host verification, authentication, and command execution against a loopback server.
 Server keys are generated in memory; tests require no external service or key files.
 */
-public class SshVerificationTest {
+public class SshVerificationIT {
     private static final String HOST = "127.0.0.1";
     private static final String USERNAME = "connector-test";
     private static final String PASSWORD = "test-password";

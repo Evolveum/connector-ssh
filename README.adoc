@@ -85,9 +85,8 @@ The `handleNullValues` configuration property can take the following values:
 
 == Tests
 
-Run the local regression tests with `mvn test`, or build the connector with `mvn verify`.
-The host verification tests start an embedded SSH server on the loopback interface with generated keys held in memory.
-They require no external SSH service, credentials, or known-hosts file.
+Run the unit tests with `mvn test`, or build the connector with `mvn verify`.
+Surefire runs the unit tests; SSH integration tests require the `integration-tests` profile described below.
 
 The existing `SshUnixTest` and `SshWindowsTest` tests require a specially configured live server
 and are excluded from the default test run.
@@ -103,11 +102,12 @@ mvn.cmd '-Dtest=SshUnixTest' '-Dssh.test.knownHostsFile=C:\ssh-test\known_hosts'
 Use `SshWindowsTest` instead for a Windows server configured with PowerShell as its default shell.
 The live tests fail before connecting if the known-hosts file is missing or invalid.
 
-== Public SSH integration tests
+== Local SSH integration tests
 
-Run `mvn -Pintegration-tests verify` to include and execute also integration SSH tests
-using the bundled `src/test/resources/known_hosts/github.known_hosts` fixture.
-No credentials or additional parameters are needed.
+Run `mvn -Pintegration-tests verify` to execute both unit tests and local SSH integration tests.
+Maven Failsafe runs classes named `*IT` in the `integration-test` phase and checks their results in the `verify` phase.
+`SshVerificationIT` starts an embedded SSH server on the loopback interface with generated keys held in memory.
+It requires no external SSH service, credentials, or known-hosts file.
 
 == Limitations
 
