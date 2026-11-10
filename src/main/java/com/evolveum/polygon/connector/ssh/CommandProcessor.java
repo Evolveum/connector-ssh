@@ -29,7 +29,12 @@ public class CommandProcessor {
         this.configuration = configuration;
     }
 
+    /**
+    Validates transport settings before formatting any script arguments.
+    @throws ConfigurationException if the transport or its argument style is unsupported
+    */
     public ProcessedCommand process(ScriptContext scriptCtx) {
+        configuration.validateTransport();
         String command = scriptCtx.getScriptText();
         if (command == null) {
             return null;

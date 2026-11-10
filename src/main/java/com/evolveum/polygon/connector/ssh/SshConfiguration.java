@@ -17,10 +17,9 @@
 package com.evolveum.polygon.connector.ssh;
 
 import org.identityconnectors.common.security.GuardedString;
+import org.identityconnectors.framework.common.exceptions.ConfigurationException;
 import org.identityconnectors.framework.spi.AbstractConfiguration;
 import org.identityconnectors.framework.spi.ConfigurationProperty;
-
-import java.util.Objects;
 
 /**
  * SSH connector configuration.
@@ -253,18 +252,28 @@ public class SshConfiguration extends AbstractConfiguration {
         this.variableTransportEnvPrefix = variableTransportEnvPrefix;
     }
 
+    /**
+    Validates transport settings and required host keys.
+    */
     @Override
     public void validate() {
-        if (Objects.equals(variableTransport, VARIABLE_TRANSPORT_ENV) &&
-            !(ARGUMENT_STYLE_VARIABLES_BASH.equals(argumentStyle) ||
-              ARGUMENT_STYLE_VARIABLES_POWERSHELL.equals(argumentStyle))) {
-            throw new IllegalArgumentException(
-                    "variableTransport set to 'env' is only supported for argument styles '" +
-                    ARGUMENT_STYLE_VARIABLES_BASH + "' and '" + ARGUMENT_STYLE_VARIABLES_POWERSHELL + "'");
-        }
-
+        validateTransport();
         if (knownHostsVerification) {
             new ConnectorKnownHostsVerifier().parse(knownHosts);
+        }
+    }
+
+    /**
+    Validates argument transport independently of connection settings.
+    */
+    void validateTransport() {
+        if (!VARIABLE_TRANSPORT_INPLACE.equals(variableTransport) && !VARIABLE_TRANSPORT_ENV.equals(variableTransport)) {
+            throw new ConfigurationException("Unknown value of variable transport: " + variableTransport);
+        }
+        if (VARIABLE_TRANSPORT_ENV.equals(variableTransport)
+                && !(ARGUMENT_STYLE_VARIABLES_BASH.equals(argumentStyle) || ARGUMENT_STYLE_VARIABLES_POWERSHELL.equals(argumentStyle))) {
+            throw new ConfigurationException("variableTransport set to 'env' is only supported for argument styles '"
+                    + ARGUMENT_STYLE_VARIABLES_BASH + "' and '" + ARGUMENT_STYLE_VARIABLES_POWERSHELL + "'");
         }
     }
 
