@@ -12,6 +12,13 @@ This connector is *supportable*.
 However, the connector is not feature-complete.
 Some functionality may be missing.
 
+== Build and tests
+
+The connector requires JDK 17 or later. Compilation uses `--release 17` to preserve Java 17 API and bytecode compatibility on newer JDKs.
+Run `mvn verify` to compile, test, and package it.
+Local regression tests run by default. The legacy `SshUnixTest` and `SshWindowsTest` require external servers and are excluded from the default run.
+After configuring the corresponding server and test credentials, select a legacy test explicitly, for example `mvn -Dtest=SshUnixTest test`.
+
 == Configuration
 
 Please see the source code of `SshConfiguration.java` for list of configuration properties.
