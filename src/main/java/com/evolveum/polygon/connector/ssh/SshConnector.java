@@ -69,9 +69,17 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     @Override
     public void init(Configuration configuration) {
         LOG.info("Initializing {0} connector instance {1}", this.getClass().getSimpleName(), this);
-        this.configuration = (SshConfiguration) configuration;
-        this.hostKeyVerifier = this.configuration.getKnownHostsVerification()
-                ? new ConnectorKnownHostsVerifier().parse(this.configuration.getKnownHosts()) : new PromiscuousVerifier();
+        if (!(configuration instanceof SshConfiguration sshConfiguration)) {
+            throw new ConfigurationException("Expected SshConfiguration");
+        }
+        initialize(sshConfiguration);
+    }
+
+    private void initialize(SshConfiguration configuration) {
+        configuration.validateTransport();
+
+        this.configuration = configuration;
+        this.hostKeyVerifier = configuration.getKnownHostsVerification() ? new ConnectorKnownHostsVerifier().parse(this.configuration.getKnownHosts()) : new PromiscuousVerifier();
         this.commandProcessor = new CommandProcessor(this.configuration);
     }
 
