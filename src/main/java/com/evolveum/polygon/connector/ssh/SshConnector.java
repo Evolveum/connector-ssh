@@ -215,12 +215,12 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
             } catch (ConnectionException | TransportException e) {
                 LOG.warn("Error closing SSH session for {0}: {1} (ignoring)", getConnectionDesc(), e.getMessage());
             }
-            session = null;
         }
-        if (ssh != null && ssh.isConnected()) {
+        session = null;
+        if (ssh != null) {
             LOG.ok("Disconnecting from {0}", getConnectionDesc());
             try {
-                ssh.disconnect();
+                ssh.close();
             } catch (IOException e) {
                 LOG.warn("Error disconnecting SSH session for {0}: {1} (ignoring)", getConnectionDesc(),
                          e.getMessage());
@@ -273,69 +273,71 @@ public class SshConnector implements PoolableConnector, TestOp, ScriptOnResource
     // Exec can be run only once in each session. We need to explicitly connect and disconnect each time.
     private String exec(ProcessedCommand processedCommand) {
 
-        connect();
-
-        final Session.Command cmd;
         try {
-            //if any envs are defined, set them in the session
-            for (Map.Entry<String, String> entry : processedCommand.envs().entrySet()) {
-                //https://man.openbsd.org/sshd_config#AcceptEnv
-                session.setEnvVar(entry.getKey(), entry.getValue());
+            connect();
+
+            final Session.Command cmd;
+            try {
+                //if any envs are defined, set them in the session
+                for (Map.Entry<String, String> entry : processedCommand.envs().entrySet()) {
+                    //https://man.openbsd.org/sshd_config#AcceptEnv
+                    session.setEnvVar(entry.getKey(), entry.getValue());
+                }
+            } catch (ConnectionException | TransportException e) {
+                throw new ConnectorIOException("Network error while setting SSH env (maybe configure AcceptEnv in sshd_config): " + e.getMessage(), e);
             }
-        } catch (ConnectionException | TransportException e) {
-            throw new ConnectorIOException("Network error while setting SSH env (maybe configure AcceptEnv in sshd_config): " + e.getMessage(), e);
-        }
 
-        try {
-            cmd = session.exec(processedCommand.commandString());
-        } catch (ConnectionException | TransportException e) {
-            throw new ConnectorIOException("Network error while executing SSH command: " + e.getMessage(), e);
-        }
-        String output;
-        String error;
-        String errorMsg;
-        try {
-            LOG.info("---- executing ssh command -----------");
-            LOG.info("processedCommand: {0} ", processedCommand);
-            output = IOUtils.readFully(cmd.getInputStream()).toString();
-            LOG.info("SSH command ouput: {0}", output);
-            error = IOUtils.readFully(cmd.getErrorStream()).toString();
-            LOG.info("SSH command error: {0}", error);
-            LOG.info("command error: {0}", error);
-            LOG.info("command exitErrorMsg: {0}", cmd.getExitErrorMessage());
-            LOG.info("command exitStatus: {0}", cmd.getExitStatus());
-            LOG.info("command exitSignal: {0}", cmd.getExitSignal());
-            LOG.info("--------------------------------------");
-
-            //throwing Exception based on exitStatus (e.g. !Integer.valueOf(0).equals(cmd.getExitStatus()) ) was not feasible
-            // - calling powershell successfully returned exitCode null
-            // - there may be return codes <> 0 having empty errorstream. E.g. calling grep (linux) having empty result
-            // simple solution: throw Exception if there is something in error stream
-            if (!error.isEmpty()) {
-                LOG.error("---- error executing ssh command ----");
-                LOG.error("-- processedCommand: {0} ", processedCommand);
-                LOG.error("-- command ouput: {0}", output);
-                LOG.error("-- command error: {0}", error);
-                LOG.error("-- command exitErrorMsg: {0}", cmd.getExitErrorMessage());
-                LOG.error("-- command exitStatus: {0}", cmd.getExitStatus());
-                LOG.error("-- command exitSignal: {0}", cmd.getExitSignal());
-                LOG.error("--------------------------------------");
-                throw new ConnectorException("Error executing SSH command: " + error);
+            try {
+                cmd = session.exec(processedCommand.commandString());
+            } catch (ConnectionException | TransportException e) {
+                throw new ConnectorIOException("Network error while executing SSH command: " + e.getMessage(), e);
             }
-        } catch (IOException e) {
-            throw new ConnectorIOException("Error reading output of SSH command: " + e.getMessage(), e);
+            String output;
+            String error;
+            String errorMsg;
+            try {
+                LOG.info("---- executing ssh command -----------");
+                LOG.info("processedCommand: {0} ", processedCommand);
+                output = IOUtils.readFully(cmd.getInputStream()).toString();
+                LOG.info("SSH command ouput: {0}", output);
+                error = IOUtils.readFully(cmd.getErrorStream()).toString();
+                LOG.info("SSH command error: {0}", error);
+                LOG.info("command error: {0}", error);
+                LOG.info("command exitErrorMsg: {0}", cmd.getExitErrorMessage());
+                LOG.info("command exitStatus: {0}", cmd.getExitStatus());
+                LOG.info("command exitSignal: {0}", cmd.getExitSignal());
+                LOG.info("--------------------------------------");
+
+                //throwing Exception based on exitStatus (e.g. !Integer.valueOf(0).equals(cmd.getExitStatus()) ) was not feasible
+                // - calling powershell successfully returned exitCode null
+                // - there may be return codes <> 0 having empty errorstream. E.g. calling grep (linux) having empty result
+                // simple solution: throw Exception if there is something in error stream
+                if (!error.isEmpty()) {
+                    LOG.error("---- error executing ssh command ----");
+                    LOG.error("-- processedCommand: {0} ", processedCommand);
+                    LOG.error("-- command ouput: {0}", output);
+                    LOG.error("-- command error: {0}", error);
+                    LOG.error("-- command exitErrorMsg: {0}", cmd.getExitErrorMessage());
+                    LOG.error("-- command exitStatus: {0}", cmd.getExitStatus());
+                    LOG.error("-- command exitSignal: {0}", cmd.getExitSignal());
+                    LOG.error("--------------------------------------");
+                    throw new ConnectorException("Error executing SSH command: " + error);
+                }
+            } catch (IOException e) {
+                throw new ConnectorIOException("Error reading output of SSH command: " + e.getMessage(), e);
+            }
+
+            try {
+                cmd.join(5, TimeUnit.SECONDS);
+            } catch (ConnectionException e) {
+                throw new ConnectorIOException("Error \"joining\" SSH command: " + e.getMessage(), e);
+            }
+
+            LOG.info("SSH command exit status: {0}", cmd.getExitStatus());
+
+            return output;
+        } finally {
+            disconnect();
         }
-
-        try {
-            cmd.join(5, TimeUnit.SECONDS);
-        } catch (ConnectionException e) {
-            throw new ConnectorIOException("Error \"joining\" SSH command: " + e.getMessage(), e);
-        }
-
-        LOG.info("SSH command exit status: {0}", cmd.getExitStatus());
-
-        disconnect();
-
-        return output;
     }
 }
