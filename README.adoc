@@ -18,6 +18,8 @@ The connector requires JDK 17 or later. Compilation uses `--release 17` to prese
 Run `mvn verify` to compile, test, and package it.
 Local regression tests run by default. The legacy `SshUnixTest` and `SshWindowsTest` require external servers and are excluded from the default run.
 After configuring the corresponding server and test credentials, select a legacy test explicitly, for example `mvn -Dtest=SshUnixTest test`.
+To execute generated commands in a real Bash shell, also set `-Dssh.test.bash=/path/to/bash`.
+Shell execution tests are skipped when their executable property is absent; command-generation tests always run.
 
 == Configuration
 
