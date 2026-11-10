@@ -156,7 +156,7 @@ public class CommandProcessor {
                 commandLineBuilder.append("=$")
                                   .append(configuration.getVariableTransportEnvPrefix())
                                   .append(variableName)
-                                  .append("; unset")
+                                  .append("; unset ")
                                   .append(configuration.getVariableTransportEnvPrefix())
                                   .append(variableName)
                                   .append("; \n");
