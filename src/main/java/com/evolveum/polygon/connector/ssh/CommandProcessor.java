@@ -210,6 +210,11 @@ public class CommandProcessor {
                                                                                   .append(quoteSingle(value))
                                                                                   .append("; ");
             case SshConfiguration.VARIABLE_TRANSPORT_ENV -> {
+                if (value.isEmpty()) {
+                    // Windows PowerShell 5.1 can read an empty environment value as null.
+                    commandLineBuilder.append("$").append(variableName).append("=''; ");
+                    return;
+                }
                 envs.put(configuration.getVariableTransportEnvPrefix() + variableName, value);
                 commandLineBuilder.append("$")
                                   .append(variableName)

@@ -19,6 +19,7 @@ Run `mvn verify` to compile, test, and package it.
 Local regression tests run by default. The legacy `SshUnixTest` and `SshWindowsTest` require external servers and are excluded from the default run.
 After configuring the corresponding server and test credentials, select a legacy test explicitly, for example `mvn -Dtest=SshUnixTest test`.
 To execute generated commands in a real Bash shell, also set `-Dssh.test.bash=/path/to/bash`.
+For PowerShell execution tests, set `-Dssh.test.powershell=/path/to/pwsh` or the path to `powershell.exe` for Windows PowerShell 5.1.
 Shell execution tests are skipped when their executable property is absent; command-generation tests always run.
 
 == Configuration
@@ -118,6 +119,10 @@ For `env` transport, the prefix and each transported argument name must match `[
 Bash argument names must not equal the generated transport name of another argument.
 For example, `foo` and `CONNID_ARG_foo` cannot be transported together with the default prefix; `CONNID_ARG_foo` alone is allowed.
 These checks exclude null-valued arguments omitted by `handleNullValues=asGone` and run before command generation.
+
+With PowerShell environment transport, empty strings are assigned directly as `$name=''` without creating a transport environment variable.
+This also applies to null arguments handled as `asEmptyString` and preserves empty strings on Windows PowerShell 5.1.
+Nonempty values continue to use SSH environment transport; `asGone` arguments remain omitted.
 
 == Tests
 
