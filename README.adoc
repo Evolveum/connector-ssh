@@ -114,6 +114,10 @@ Make sure that the server allows env passing.
 
 The `variableTransportEnvPrefix` configuration property sets the prefix for environment variable transport.
 The default value is `CONNID_ARG_`.
+For `env` transport, the prefix and each transported argument name must match `[A-Za-z_][A-Za-z0-9_]*`; the prefix cannot be empty.
+Bash argument names must not equal the generated transport name of another argument.
+For example, `foo` and `CONNID_ARG_foo` cannot be transported together with the default prefix; `CONNID_ARG_foo` alone is allowed.
+These checks exclude null-valued arguments omitted by `handleNullValues=asGone` and run before command generation.
 
 == Tests
 

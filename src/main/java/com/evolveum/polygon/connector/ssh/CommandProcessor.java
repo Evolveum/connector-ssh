@@ -19,7 +19,9 @@ import org.identityconnectors.framework.common.exceptions.ConfigurationException
 import org.identityconnectors.framework.common.objects.ScriptContext;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class CommandProcessor {
 
@@ -31,7 +33,7 @@ public class CommandProcessor {
 
     /**
     Validates transport settings before formatting any script arguments.
-    @throws ConfigurationException if the transport or its argument style is unsupported
+    @throws ConfigurationException if transport settings or environment names are invalid
     */
     public ProcessedCommand process(ScriptContext scriptCtx) {
         configuration.validateTransport();
@@ -98,11 +100,40 @@ public class CommandProcessor {
     }
 
     private enum Language {BASH, POWERSHELL}
+
+    /**
+    Checks only transported arguments; Bash assignments must not overwrite another argument's transport variable.
+    */
+    private void validateNames(Map<String, Object> arguments, Language language) {
+        Set<String> names = new HashSet<>();
+        for (Map.Entry<String, Object> argument : arguments.entrySet()) {
+            String name = argument.getKey();
+            if (name == null || (argument.getValue() == null && SshConfiguration.HANDLE_NULL_AS_GONE.equals(configuration.getHandleNullValues()))) {
+                continue;
+            }
+            if (!SshConfiguration.ENVIRONMENT_NAME.matcher(name).matches()) {
+                throw new ConfigurationException("Invalid script argument name for environment transport: '" + name + "'");
+            }
+            names.add(name);
+        }
+        if (language == Language.BASH) {
+            for (String name : names) {
+                String environment = configuration.getVariableTransportEnvPrefix() + name;
+                if (names.contains(environment)) {
+                    throw new ConfigurationException("Script argument '" + environment + "' conflicts with environment transport for '" + name + "'");
+                }
+            }
+        }
+    }
+
     private ProcessedCommand encodeVariablesAndCommandToString(String command,
                                                                Map<String, Object> arguments,
                                                                Language language) {
         if (arguments == null) {
             return new ProcessedCommand(command, Map.of());
+        }
+        if (SshConfiguration.VARIABLE_TRANSPORT_ENV.equals(configuration.getVariableTransport())) {
+            validateNames(arguments, language);
         }
         StringBuilder commandLineBuilder = new StringBuilder();
         Map<String, String> envs = new HashMap<>();

@@ -21,6 +21,8 @@ import org.identityconnectors.framework.common.exceptions.ConfigurationException
 import org.identityconnectors.framework.spi.AbstractConfiguration;
 import org.identityconnectors.framework.spi.ConfigurationProperty;
 
+import java.util.regex.Pattern;
+
 /**
  * SSH connector configuration.
  *
@@ -124,12 +126,13 @@ public class SshConfiguration extends AbstractConfiguration {
     public static final String VARIABLE_TRANSPORT_INPLACE = "inplace";
     public static final String VARIABLE_TRANSPORT_ENV = "env";
 
+    static final Pattern ENVIRONMENT_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
     /**
-     * Prefix for environment variables used for argument transport, if variableTransport is set to "env".
-     * Make sure that the sshd_config of the ssh daemon is configured to allow setting envs with the given prefix via ssh.
-     * Make sure that the prefix does not collide with other environment variable names.
-     * Default: CONNID_ARG_
-     */
+    Prefix for environment transport; must be a nonempty portable identifier matching [A-Za-z_][A-Za-z0-9_]*.
+    Configure sshd_config to accept the prefix, and avoid names already used by the remote environment.
+    Default: CONNID_ARG_
+    */
     private String variableTransportEnvPrefix = "CONNID_ARG_";
 
     @ConfigurationProperty(order = 100)
@@ -274,6 +277,10 @@ public class SshConfiguration extends AbstractConfiguration {
                 && !(ARGUMENT_STYLE_VARIABLES_BASH.equals(argumentStyle) || ARGUMENT_STYLE_VARIABLES_POWERSHELL.equals(argumentStyle))) {
             throw new ConfigurationException("variableTransport set to 'env' is only supported for argument styles '"
                     + ARGUMENT_STYLE_VARIABLES_BASH + "' and '" + ARGUMENT_STYLE_VARIABLES_POWERSHELL + "'");
+        }
+        if (VARIABLE_TRANSPORT_ENV.equals(variableTransport)
+                && (variableTransportEnvPrefix == null || !ENVIRONMENT_NAME.matcher(variableTransportEnvPrefix).matches())) {
+            throw new ConfigurationException("variableTransportEnvPrefix must match [A-Za-z_][A-Za-z0-9_]* when variableTransport is 'env'");
         }
     }
 
