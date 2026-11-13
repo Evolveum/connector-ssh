@@ -18,7 +18,10 @@ package com.evolveum.polygon.connector.ssh;
 import org.identityconnectors.framework.common.exceptions.ConfigurationException;
 import org.identityconnectors.framework.common.objects.ScriptContext;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class CommandProcessor {
 
@@ -28,43 +31,48 @@ public class CommandProcessor {
         this.configuration = configuration;
     }
 
-    public String process(ScriptContext scriptCtx) {
+    /**
+    Validates transport settings before formatting any script arguments.
+    @throws ConfigurationException if transport settings or environment names are invalid
+    */
+    public ProcessedCommand process(ScriptContext scriptCtx) {
+        configuration.validateTransport();
         String command = scriptCtx.getScriptText();
         if (command == null) {
             return null;
         }
         Map<String, Object> arguments = scriptCtx.getScriptArguments();
         if (arguments == null) {
-            return command;
+            return new ProcessedCommand(command, Map.of());
         }
         if (configuration.getArgumentStyle() == null) {
             return encodeArgumentsAndCommandToString(command, arguments, "-");
         }
-        switch (configuration.getArgumentStyle()) {
-            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_BASH:
-                return encodeVariablesAndCommandToString(command, arguments, "", false);
-            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_POWERSHELL:
-                return encodeVariablesAndCommandToString(command, arguments, "$", true);
-            case SshConfiguration.ARGUMENT_STYLE_DASH:
-                return encodeArgumentsAndCommandToString(command, arguments, "-");
-            case SshConfiguration.ARGUMENT_STYLE_SLASH:
-                return encodeArgumentsAndCommandToString(command, arguments, "/");
-            default:
-                throw new ConfigurationException("Unknown value of argument style: "+configuration.getArgumentStyle());
-        }
+        return switch (configuration.getArgumentStyle()) {
+            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_BASH ->
+                    encodeVariablesAndCommandToString(command, arguments, Language.BASH);
+            case SshConfiguration.ARGUMENT_STYLE_VARIABLES_POWERSHELL ->
+                    encodeVariablesAndCommandToString(command, arguments, Language.POWERSHELL);
+            case SshConfiguration.ARGUMENT_STYLE_DASH -> encodeArgumentsAndCommandToString(command, arguments, "-");
+            case SshConfiguration.ARGUMENT_STYLE_SLASH -> encodeArgumentsAndCommandToString(command, arguments, "/");
+            default -> throw new ConfigurationException(
+                    "Unknown value of argument style: " + configuration.getArgumentStyle());
+        };
     }
 
-    private String encodeArgumentsAndCommandToString(String command, Map<String, Object> arguments, String paramPrefix) {
+    private ProcessedCommand encodeArgumentsAndCommandToString(String command,
+                                                               Map<String, Object> arguments,
+                                                               String paramPrefix) {
         StringBuilder commandLineBuilder = new StringBuilder();
         commandLineBuilder.append(command);
-        for (Map.Entry<String, Object> argEntry: arguments.entrySet()) {
+        for (Map.Entry<String, Object> argEntry : arguments.entrySet()) {
             if (argEntry.getKey() == null) {
                 // we want this to go last
                 continue;
             }
             Object value = argEntry.getValue();
             boolean insertAttribute = true;
-            if(value == null) {
+            if (value == null) {
                 switch (configuration.getHandleNullValues()) {
                     case SshConfiguration.HANDLE_NULL_AS_EMPTY_STRING:
                         value = "";
@@ -73,10 +81,11 @@ public class CommandProcessor {
                         insertAttribute = false;
                         break;
                     default:
-                        throw new ConfigurationException("Unknown value of handleNullValues: " + configuration.getHandleNullValues());
+                        throw new ConfigurationException(
+                                "Unknown value of handleNullValues: " + configuration.getHandleNullValues());
                 }
             }
-            if(insertAttribute) {
+            if (insertAttribute) {
                 commandLineBuilder.append(" ");
                 commandLineBuilder.append(paramPrefix).append(argEntry.getKey());
                 commandLineBuilder.append(" ");
@@ -87,22 +96,55 @@ public class CommandProcessor {
             commandLineBuilder.append(" ");
             commandLineBuilder.append(arguments.get(null));
         }
-        return commandLineBuilder.toString();
+        return new ProcessedCommand(commandLineBuilder.toString(), Map.of());
     }
 
-    private String encodeVariablesAndCommandToString(String command, Map<String, Object> arguments, String variablePrefix, boolean spaces) {
+    private enum Language {BASH, POWERSHELL}
+
+    /**
+    Checks only transported arguments; Bash assignments must not overwrite another argument's transport variable.
+    */
+    private void validateNames(Map<String, Object> arguments, Language language) {
+        Set<String> names = new HashSet<>();
+        for (Map.Entry<String, Object> argument : arguments.entrySet()) {
+            String name = argument.getKey();
+            if (name == null || (argument.getValue() == null && SshConfiguration.HANDLE_NULL_AS_GONE.equals(configuration.getHandleNullValues()))) {
+                continue;
+            }
+            if (!SshConfiguration.ENVIRONMENT_NAME.matcher(name).matches()) {
+                throw new ConfigurationException("Invalid script argument name for environment transport: '" + name + "'");
+            }
+            names.add(name);
+        }
+        if (language == Language.BASH) {
+            for (String name : names) {
+                String environment = configuration.getVariableTransportEnvPrefix() + name;
+                if (names.contains(environment)) {
+                    throw new ConfigurationException("Script argument '" + environment + "' conflicts with environment transport for '" + name + "'");
+                }
+            }
+        }
+    }
+
+    private ProcessedCommand encodeVariablesAndCommandToString(String command,
+                                                               Map<String, Object> arguments,
+                                                               Language language) {
         if (arguments == null) {
-            return command;
+            return new ProcessedCommand(command, Map.of());
+        }
+        if (SshConfiguration.VARIABLE_TRANSPORT_ENV.equals(configuration.getVariableTransport())) {
+            validateNames(arguments, language);
         }
         StringBuilder commandLineBuilder = new StringBuilder();
-        for (Map.Entry<String, Object> argEntry: arguments.entrySet()) {
+        Map<String, String> envs = new HashMap<>();
+        for (Map.Entry<String, Object> argEntry : arguments.entrySet()) {
             if (argEntry.getKey() == null) {
                 // we want this to go last
                 continue;
             }
             Object value = argEntry.getValue();
             boolean insertAttribute = true;
-            if(value == null) {
+            if (value == null) {
                 switch (configuration.getHandleNullValues()) {
                     case SshConfiguration.HANDLE_NULL_AS_EMPTY_STRING:
                         value = "";
@@ -111,18 +153,17 @@ public class CommandProcessor {
                         insertAttribute = false;
                         break;
                     default:
-                        throw new ConfigurationException("Unknown value of handleNullValues: " + configuration.getHandleNullValues());
+                        throw new ConfigurationException(
+                                "Unknown value of handleNullValues: " + configuration.getHandleNullValues());
                 }
             }
-            if(insertAttribute) {
-                commandLineBuilder.append(variablePrefix).append(argEntry.getKey());
-                if (spaces) {
-                    commandLineBuilder.append(" = ");
-                } else {
-                    commandLineBuilder.append("=");
+            if (insertAttribute) {
+                switch (language) {
+                    case BASH -> encodeBashVariable(commandLineBuilder, argEntry.getKey(), value.toString(), envs);
+                    case POWERSHELL ->
+                            encodePowershellVariable(commandLineBuilder, argEntry.getKey(), value.toString(), envs);
                 }
-                commandLineBuilder.append(quoteSingle(value));
-                commandLineBuilder.append("; ");
+
             }
         }
         commandLineBuilder.append(command);
@@ -130,10 +171,69 @@ public class CommandProcessor {
             commandLineBuilder.append(" ");
             commandLineBuilder.append(arguments.get(null));
         }
-        return commandLineBuilder.toString();
+        return new ProcessedCommand(commandLineBuilder.toString(), envs);
+    }
+
+    private void encodeBashVariable(StringBuilder commandLineBuilder,
+                                    String variableName,
+                                    String value,
+                                    Map<String, String> envs) {
+        switch (configuration.getVariableTransport()) {
+            case SshConfiguration.VARIABLE_TRANSPORT_INPLACE ->
+                    commandLineBuilder.append(variableName).append("=").append(quoteSingle(value)).append("; ");
+            case SshConfiguration.VARIABLE_TRANSPORT_ENV -> {
+                envs.put(configuration.getVariableTransportEnvPrefix() + variableName, value);
+                commandLineBuilder.append(variableName);
+                commandLineBuilder.append("=$")
+                                  .append(configuration.getVariableTransportEnvPrefix())
+                                  .append(variableName)
+                                  .append("; unset ")
+                                  .append(configuration.getVariableTransportEnvPrefix())
+                                  .append(variableName)
+                                  .append("; \n");
+
+            }
+            default -> throw new ConfigurationException(
+                    "Unknown value of variable transport: " + configuration.getVariableTransport());
+
+        }
+    }
+
+    private void encodePowershellVariable(StringBuilder commandLineBuilder,
+                                          String variableName,
+                                          String value,
+                                          Map<String, String> envs) {
+        switch (configuration.getVariableTransport()) {
+            case SshConfiguration.VARIABLE_TRANSPORT_INPLACE -> commandLineBuilder.append("$")
+                                                                                  .append(variableName)
+                                                                                  .append("=")
+                                                                                  .append(quoteSingle(value))
+                                                                                  .append("; ");
+            case SshConfiguration.VARIABLE_TRANSPORT_ENV -> {
+                if (value.isEmpty()) {
+                    // Windows PowerShell 5.1 can read an empty environment value as null.
+                    commandLineBuilder.append("$").append(variableName).append("=''; ");
+                    return;
+                }
+                envs.put(configuration.getVariableTransportEnvPrefix() + variableName, value);
+                commandLineBuilder.append("$")
+                                  .append(variableName)
+                                  .append(" = $env:")
+                                  .append(configuration.getVariableTransportEnvPrefix())
+                                  .append(variableName)
+                                  .append("; $env:")
+                                  .append(configuration.getVariableTransportEnvPrefix())
+                                  .append(variableName)
+                                  .append(" = $null; \n");
+
+            }
+            default -> throw new ConfigurationException(
+                    "Unknown value of variable transport: " + configuration.getVariableTransport());
+
+        }
     }
 
     private String quoteSingle(Object value) {
-        return "'" + value.toString().replaceAll("'", "''") + "'";
+        return "'" + value.toString().replace("'", "''") + "'";
     }
 }
