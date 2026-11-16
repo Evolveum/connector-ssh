@@ -35,6 +35,8 @@
     <properties>
         <connectorPackage>com.evolveum.polygon.connector.ssh</connectorPackage>
         <connectorClass>SshConnector</connectorClass>
+        <project.source.version>17</project.source.version>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
     <repositories>
@@ -64,6 +66,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -73,7 +76,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Live SSH tests require an explicitly selected test and a configured server. -->
+                    <!-- Legacy external-server tests require explicit selection and server setup. -->
                     <excludes>
                         <exclude>**/SshUnixTest.java</exclude>
                         <exclude>**/SshWindowsTest.java</exclude>
